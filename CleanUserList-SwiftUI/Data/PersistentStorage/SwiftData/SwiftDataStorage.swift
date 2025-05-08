@@ -96,12 +96,10 @@ final class UserEntity {
 
 class SwiftDataStorage: UserStorage {
     private let modelContainer: ModelContainer
-    private let modelContext: ModelContext
     
     init() throws {
         let schema = Schema([UserEntity.self])
         self.modelContainer = try ModelContainer(for: schema)
-        self.modelContext = modelContainer.mainContext
     }
     
     func saveUsers(_ users: [User]) -> AnyPublisher<Void, Error> {
@@ -111,27 +109,31 @@ class SwiftDataStorage: UserStorage {
                 return
             }
             
-            do {
-                // Convertir usuarios a entidades SwiftData
-                let userEntities = users.map { UserEntity.fromDomain(user: $0) }
-                
-                // Para cada entidad, verificar si ya existe y solo agregar si no existe
-                for entity in userEntities {
-                    // Buscar si existe un usuario con el mismo ID
-                    let descriptor = FetchDescriptor<UserEntity>(predicate: #Predicate { $0.id == entity.id })
-                    let existingUsers = try self.modelContext.fetch(descriptor)
+            Task { @MainActor in
+                do {
+                    let modelContext = self.modelContainer.mainContext
                     
-                    // Si no existe, agregarlo
-                    if existingUsers.isEmpty {
-                        self.modelContext.insert(entity)
+                    // Convertir usuarios a entidades SwiftData
+                    let userEntities = users.map { UserEntity.fromDomain(user: $0) }
+                    
+                    // Para cada entidad, verificar si ya existe y solo agregar si no existe
+                    for entity in userEntities {
+                        // Buscar si existe un usuario con el mismo ID
+                        let descriptor = FetchDescriptor<UserEntity>(predicate: #Predicate { $0.id == entity.id })
+                        let existingUsers = try modelContext.fetch(descriptor)
+                        
+                        // Si no existe, agregarlo
+                        if existingUsers.isEmpty {
+                            modelContext.insert(entity)
+                        }
                     }
+                    
+                    // Guardar los cambios
+                    try modelContext.save()
+                    promise(.success(()))
+                } catch {
+                    promise(.failure(error))
                 }
-                
-                // Guardar los cambios
-                try self.modelContext.save()
-                promise(.success(()))
-            } catch {
-                promise(.failure(error))
             }
         }.eraseToAnyPublisher()
     }
@@ -143,13 +145,16 @@ class SwiftDataStorage: UserStorage {
                 return
             }
             
-            do {
-                let descriptor = FetchDescriptor<UserEntity>()
-                let userEntities = try self.modelContext.fetch(descriptor)
-                let users = userEntities.map { $0.toDomain() }
-                promise(.success(users))
-            } catch {
-                promise(.failure(error))
+            Task { @MainActor in
+                do {
+                    let modelContext = self.modelContainer.mainContext
+                    let descriptor = FetchDescriptor<UserEntity>()
+                    let userEntities = try modelContext.fetch(descriptor)
+                    let users = userEntities.map { $0.toDomain() }
+                    promise(.success(users))
+                } catch {
+                    promise(.failure(error))
+                }
             }
         }.eraseToAnyPublisher()
     }
@@ -161,18 +166,21 @@ class SwiftDataStorage: UserStorage {
                 return
             }
             
-            do {
-                let descriptor = FetchDescriptor<UserEntity>(predicate: #Predicate { $0.id == id })
-                let usersToDelete = try self.modelContext.fetch(descriptor)
-                
-                for user in usersToDelete {
-                    self.modelContext.delete(user)
+            Task { @MainActor in
+                do {
+                    let modelContext = self.modelContainer.mainContext
+                    let descriptor = FetchDescriptor<UserEntity>(predicate: #Predicate { $0.id == id })
+                    let usersToDelete = try modelContext.fetch(descriptor)
+                    
+                    for user in usersToDelete {
+                        modelContext.delete(user)
+                    }
+                    
+                    try modelContext.save()
+                    promise(.success(()))
+                } catch {
+                    promise(.failure(error))
                 }
-                
-                try self.modelContext.save()
-                promise(.success(()))
-            } catch {
-                promise(.failure(error))
             }
         }.eraseToAnyPublisher()
     }

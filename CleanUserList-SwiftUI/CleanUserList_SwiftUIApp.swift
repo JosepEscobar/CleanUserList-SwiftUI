@@ -16,7 +16,7 @@ struct CleanUserList_SwiftUIApp: App {
         WindowGroup {
             UserListView(viewModel: dependencyContainer.makeUserListViewModel())
         }
-        .modelContainer(for: [UserEntity.self])
+        .modelContainer(for: [UserEntity.self], isUndoEnabled: true)
     }
 }
 

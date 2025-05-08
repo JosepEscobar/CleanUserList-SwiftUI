@@ -3,20 +3,28 @@ import SwiftData
 
 @Model
 final class UserEntity {
-    @Attribute(.unique) var id: String
-    var name: String
-    var surname: String
-    var fullName: String
-    var email: String
-    var phone: String
-    var gender: String
-    var street: String
-    var city: String 
-    var state: String
-    var registeredDate: Date
-    var largeImageURL: String
-    var mediumImageURL: String
-    var thumbnailImageURL: String
+    @Attribute(.unique) var id: String = ""
+    var name: String = ""
+    var surname: String = ""
+    var fullName: String = ""
+    var email: String = ""
+    var phone: String = ""
+    var gender: String = ""
+    var street: String = ""
+    var city: String = ""
+    var state: String = ""
+    
+    @Attribute(.externalStorage) 
+    var registeredDate: Date = Date()
+    
+    @Attribute(.externalStorage)
+    var largeImageURL: String = ""
+    
+    @Attribute(.externalStorage)
+    var mediumImageURL: String = ""
+    
+    @Attribute(.externalStorage)
+    var thumbnailImageURL: String = ""
     
     init(
         id: String,
@@ -48,6 +56,10 @@ final class UserEntity {
         self.largeImageURL = largeImageURL
         self.mediumImageURL = mediumImageURL
         self.thumbnailImageURL = thumbnailImageURL
+    }
+    
+    // Inicializador sin parámetros que requiere SwiftData
+    init() {
     }
     
     func toDomain() -> User {

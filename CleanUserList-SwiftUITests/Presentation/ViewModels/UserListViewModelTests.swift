@@ -17,14 +17,14 @@ final class UserListViewModelTests: XCTestCase {
         let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success([]))
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
         let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let mockScheduler = ImmediateScheduler()
+        let testQueue = DispatchQueue.immediate
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: mockScheduler
+            scheduler: testQueue
         )
         
         // Se inicializa llamando a loadSavedUsers, lo reseteamos para control de prueba
@@ -60,14 +60,14 @@ final class UserListViewModelTests: XCTestCase {
         let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success([]))
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
         let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let mockScheduler = ImmediateScheduler()
+        let testQueue = DispatchQueue.immediate
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: mockScheduler
+            scheduler: testQueue
         )
         
         // Se inicializa llamando a loadSavedUsers, lo reseteamos para control de prueba
@@ -99,14 +99,14 @@ final class UserListViewModelTests: XCTestCase {
         let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success(users))
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
         let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let mockScheduler = ImmediateScheduler()
+        let testQueue = DispatchQueue.immediate
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: mockScheduler
+            scheduler: testQueue
         )
         
         let expectation = self.expectation(description: "User deleted")
@@ -143,14 +143,14 @@ final class UserListViewModelTests: XCTestCase {
         let mockSearchUsersUseCase = MockSearchUsersUseCase(result: .success(filteredUsers))
         
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
-        let mockScheduler = ImmediateScheduler()
+        let testQueue = DispatchQueue.immediate
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: mockScheduler
+            scheduler: testQueue
         )
         
         let expectation = self.expectation(description: "Search filter applied")
@@ -245,10 +245,21 @@ class MockSearchUsersUseCase: SearchUsersUseCase {
     }
 }
 
-// MARK: - Testing Scheduler
-class ImmediateScheduler: SchedulerType {
-    func schedule<T>(options: DispatchQueue.SchedulerOptions?, _ action: @escaping () -> T) -> Cancellable {
-        let value = action()
-        return AnyCancellable {}
+// MARK: - Immediate Dispatch Queue para tests
+extension DispatchQueue {
+    static var immediate: DispatchQueue {
+        return Immediate.shared
+    }
+    
+    private final class Immediate: DispatchQueue {
+        static let shared = Immediate()
+        
+        private init() {
+            super.init(label: "com.immediate.queue")
+        }
+        
+        override func async(execute work: @escaping () -> Void) {
+            work()
+        }
     }
 } 

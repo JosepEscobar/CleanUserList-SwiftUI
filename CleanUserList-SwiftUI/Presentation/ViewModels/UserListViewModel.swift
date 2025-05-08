@@ -31,7 +31,7 @@ class UserListViewModel: UserListViewModelType {
     private let getSavedUsersUseCase: GetSavedUsersUseCase
     private let deleteUserUseCase: DeleteUserUseCase
     private let searchUsersUseCase: SearchUsersUseCase
-    private let scheduler: SchedulerType
+    private let scheduler: DispatchQueue
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -42,7 +42,7 @@ class UserListViewModel: UserListViewModelType {
         getSavedUsersUseCase: GetSavedUsersUseCase,
         deleteUserUseCase: DeleteUserUseCase,
         searchUsersUseCase: SearchUsersUseCase,
-        scheduler: SchedulerType = DispatchQueue.main
+        scheduler: DispatchQueue = .main
     ) {
         self.getUsersUseCase = getUsersUseCase
         self.getSavedUsersUseCase = getSavedUsersUseCase
@@ -167,11 +167,4 @@ class UserListViewModel: UserListViewModelType {
             )
             .store(in: &cancellables)
     }
-}
-
-// MARK: - Scheduler Type para facilitar testing
-protocol SchedulerType {
-    func schedule<T>(options: DispatchQueue.SchedulerOptions?, _ action: @escaping () -> T) -> Combine.Cancellable
-}
-
-extension DispatchQueue: SchedulerType {} 
+} 
