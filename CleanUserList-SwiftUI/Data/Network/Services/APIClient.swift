@@ -1,24 +1,58 @@
 import Foundation
 import Combine
 
-enum APIError: Error {
+enum APIError: Error, Equatable {
     case invalidURL
     case responseError
     case decodingError
     case serverError(statusCode: Int)
     case unknown
+    
+    static func == (lhs: APIError, rhs: APIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL):
+            return true
+        case (.responseError, .responseError):
+            return true
+        case (.decodingError, .decodingError):
+            return true
+        case let (.serverError(lhsCode), .serverError(rhsCode)):
+            return lhsCode == rhsCode
+        case (.unknown, .unknown):
+            return true
+        default:
+            return false
+        }
+    }
 }
+
+protocol URLSessionProtocol {
+    func dataTaskPublisher(for url: URL) -> URLSession.DataTaskPublisher
+}
+
+extension URLSession: URLSessionProtocol {}
+
+protocol DateFormatterProtocol {
+    func string(from date: Date) -> String
+    func date(from string: String) -> Date?
+}
+
+extension DateFormatter: DateFormatterProtocol {}
 
 protocol APIClient {
     func getUsers(count: Int) -> AnyPublisher<UserResponse, Error>
 }
 
 class DefaultAPIClient: APIClient {
-    private let baseURL = "https://api.randomuser.me"
-    private let session: URLSession
+    private let baseURL: String
+    private let session: URLSessionProtocol
     private let decoder: JSONDecoder
     
-    init(session: URLSession = .shared) {
+    init(
+        baseURL: String = "https://api.randomuser.me",
+        session: URLSessionProtocol = URLSession.shared
+    ) {
+        self.baseURL = baseURL
         self.session = session
         self.decoder = JSONDecoder()
         

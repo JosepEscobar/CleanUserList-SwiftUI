@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct CleanUserList_SwiftUIApp: App {
@@ -15,6 +16,7 @@ struct CleanUserList_SwiftUIApp: App {
         WindowGroup {
             UserListView(viewModel: dependencyContainer.makeUserListViewModel())
         }
+        .modelContainer(for: [UserEntity.self])
     }
 }
 
@@ -26,7 +28,15 @@ class DependencyContainer {
     
     // Storage
     private lazy var userStorage: UserStorage = {
-        return UserDefaultsStorage()
+        do {
+            // Usar SwiftData para persistencia
+            return try SwiftDataStorage()
+        } catch {
+            // Fallback a UserDefaults si SwiftData falla
+            print("Error initializing SwiftDataStorage: \(error.localizedDescription)")
+            print("Falling back to UserDefaultsStorage")
+            return UserDefaultsStorage()
+        }
     }()
     
     // Repository
