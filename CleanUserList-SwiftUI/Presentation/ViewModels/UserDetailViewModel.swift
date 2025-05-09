@@ -3,6 +3,11 @@ import SwiftUI
 
 @MainActor
 final class UserDetailViewModel: ObservableObject {
+    private enum Constants {
+        static let dateStyle: DateFormatter.Style = .medium
+        static let timeStyle: DateFormatter.Style = .short
+    }
+    
     @Published var refreshID = UUID()
     let loadImageUseCase: LoadImageUseCase
     private let user: User
@@ -47,8 +52,8 @@ final class UserDetailViewModel: ObservableObject {
     
     var registeredDate: String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.dateStyle = Constants.dateStyle
+        formatter.timeStyle = Constants.timeStyle
         
         // Always use system language
         formatter.locale = Locale.current

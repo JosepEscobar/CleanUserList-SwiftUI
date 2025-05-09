@@ -2,6 +2,10 @@ import SwiftUI
 
 // Extension to provide a placeholder user
 extension User {
+    private enum Constants {
+        static let placeholderImageURL = "https://randomuser.me/api/portraits/med/men/1.jpg"
+    }
+    
     static func placeholder() -> User {
         return User(
             id: "placeholder",
@@ -14,9 +18,9 @@ extension User {
             location: Location(street: "", city: "", state: ""),
             registeredDate: Date(),
             picture: Picture(
-                large: URL(string: "https://randomuser.me/api/portraits/med/men/1.jpg")!,
-                medium: URL(string: "https://randomuser.me/api/portraits/med/men/1.jpg")!,
-                thumbnail: URL(string: "https://randomuser.me/api/portraits/med/men/1.jpg")!
+                large: URL(string: Constants.placeholderImageURL)!,
+                medium: URL(string: Constants.placeholderImageURL)!,
+                thumbnail: URL(string: Constants.placeholderImageURL)!
             )
         )
     }
@@ -24,6 +28,10 @@ extension User {
 
 // Simple image cache
 actor ImageCache {
+    private enum Constants {
+        static let cacheLimit = 100
+    }
+    
     // Global actor access
     static let shared = ImageCache()
     
@@ -39,7 +47,7 @@ actor ImageCache {
     }
     
     private init() {
-        cache.countLimit = 100
+        cache.countLimit = Constants.cacheLimit
     }
     
     func set(_ image: Image, for url: URL) {
@@ -56,91 +64,46 @@ actor ImageCache {
 }
 
 // Simple component for reliable image loading
-struct UserAsyncImageView<Content: View, Placeholder: View>: View {
-    private let url: URL?
-    private let content: (Image) -> Content
-    private let placeholder: () -> Placeholder
+struct UserAsyncImageView: View {
+    private enum Constants {
+        static let timeoutInterval: TimeInterval = 15.0
+        static let maxConnectionsPerHost = 1
+        static let imageAcceptHeader = "image/jpeg, image/png"
+        static let protocolVersion = "HTTP/1.1"
+    }
+    
+    let url: URL
     @State private var image: Image?
     @State private var isLoading = true
     @State private var loadingFailed = false
-    private let viewModel: Any
-    
-    // Constructor to use with ViewModels
-    init(url: URL?,
-         viewModel: Any, // The ViewModel to load images
-         @ViewBuilder content: @escaping (Image) -> Content,
-         @ViewBuilder placeholder: @escaping () -> Placeholder) {
-        self.url = url
-        self.viewModel = viewModel
-        self.content = content
-        self.placeholder = placeholder
-    }
     
     var body: some View {
         Group {
             if let image = image {
-                content(image)
-            } else {
-                placeholder()
-                    .onAppear {
-                        loadImage()
-                    }
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else if isLoading {
+                ProgressView()
+            } else if loadingFailed {
+                Image(systemName: "photo")
+                    .foregroundColor(.gray)
             }
         }
-        .onAppear {
-            if image == nil && !isLoading && loadingFailed {
-                // Retry loading the image if it failed previously
-                loadImage()
-            }
+        .task {
+            await loadImage()
         }
     }
     
-    private func loadImage() {
-        guard let url = url, image == nil else { return }
-        
-        // First try to use ViewModel if compatible
-        Task {
-            if let cachedImage = await ImageCache.shared.get(for: url) {
-                self.image = cachedImage
-                self.isLoading = false
-                return
-            }
-            
-            isLoading = true
-            loadingFailed = false
-            
-            // Primero probamos usar el ViewModel si es compatible
-            if let userListVM = viewModel as? any UserListViewModelType {
-                do {
-                    let loadedImage = try await userListVM.loadImage(from: url)
-                    
-                    // Save to cache
-                    await ImageCache.shared.set(loadedImage, for: url)
-                    
-                    self.image = loadedImage
-                    self.isLoading = false
-                } catch {
-                    // If it fails, load with URLSession
-                    await loadImageWithURLSession(url: url)
-                }
-            } else if let userDetailVM = viewModel as? UserDetailViewModel {
-                do {
-                    let loadedImage = try await userDetailVM.loadImage(from: url)
-                    
-                    // Save to cache
-                    await ImageCache.shared.set(loadedImage, for: url)
-                    
-                    self.image = loadedImage
-                    self.isLoading = false
-                } catch {
-                    // If it fails, load with URLSession
-                    await loadImageWithURLSession(url: url)
-                }
-            } else {
-                // If not a compatible ViewModel, use URLSession directly
-                await loadImageWithURLSession(url: url)
-            }
+    private func loadImage() async {
+        // Check cache first
+        if let cachedImage = await ImageCache.shared.get(for: url) {
+            self.image = cachedImage
+            self.isLoading = false
+            return
         }
+        
+        await loadImageWithURLSession(url: url)
     }
     
     private func loadImageWithURLSession(url: URL) async {
@@ -151,15 +114,15 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
             request.httpMethod = "GET"
             
             // Optimize HTTP request
-            request.setValue("HTTP/1.1", forHTTPHeaderField: "X-Protocol-Version")
+            request.setValue(Constants.protocolVersion, forHTTPHeaderField: "X-Protocol-Version")
             request.setValue("close", forHTTPHeaderField: "Connection")
             
             let config = URLSessionConfiguration.default
             config.allowsExpensiveNetworkAccess = true
-            config.timeoutIntervalForRequest = 15
-            config.httpMaximumConnectionsPerHost = 1
+            config.timeoutIntervalForRequest = Constants.timeoutInterval
+            config.httpMaximumConnectionsPerHost = Constants.maxConnectionsPerHost
             config.httpAdditionalHeaders = [
-                "Accept": "image/jpeg, image/png",
+                "Accept": Constants.imageAcceptHeader,
                 "Connection": "close"
             ]
             
@@ -189,23 +152,10 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
     
     // Helper function to create CGImage from Data
     private func createCGImage(from data: Data) -> CGImage? {
-        if let provider = CGDataProvider(data: data as CFData),
-           let cgImage = CGImage(
-            jpegDataProviderSource: provider,
-            decode: nil,
-            shouldInterpolate: true,
-            intent: .defaultIntent
-           ) {
-            return cgImage
-        } else if let provider = CGDataProvider(data: data as CFData),
-                  let cgImage = CGImage(
-                    pngDataProviderSource: provider,
-                    decode: nil,
-                    shouldInterpolate: true,
-                    intent: .defaultIntent
-                  ) {
-            return cgImage
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            return nil
         }
-        return nil
+        return image
     }
 } 

@@ -66,19 +66,25 @@ protocol APIClient {
 
 @MainActor
 class DefaultAPIClient: APIClient {
+    private enum Constants {
+        static let baseURL = "http://api.randomuser.me"
+        static let dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        static let locale = "en_US_POSIX"
+    }
+    
     private let decoder = JSONDecoder()
     
     init() {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        formatter.dateFormat = Constants.dateFormat
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale = Locale(identifier: Constants.locale)
         
         decoder.dateDecodingStrategy = .formatted(formatter)
     }
     
     func getUsers(count: Int) async throws -> UserResponse {
-        let urlString = "http://api.randomuser.me/?results=\(count)&nat=es"
+        let urlString = "\(Constants.baseURL)/?results=\(count)&nat=es"
         guard let url = URL(string: urlString) else {
             throw APIError.unknown("URL inválida")
         }

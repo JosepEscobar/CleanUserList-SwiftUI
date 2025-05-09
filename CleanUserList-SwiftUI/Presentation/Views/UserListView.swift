@@ -1,221 +1,135 @@
 import SwiftUI
 
 struct UserListView: View {
-    @StateObject var viewModel: UserListViewModel
-    @State private var selectedUser: User?
+    @StateObject private var viewModel: UserListViewModel
+    @State private var searchText = ""
+    @State private var isRefreshing = false
+    
+    private enum Constants {
+        static let cornerRadius: CGFloat = 12
+        static let shadowOpacity: Double = 0.05
+        static let shadowRadius: CGFloat = 5
+        static let shadowOffsetY: CGFloat = 2
+        static let horizontalPadding: CGFloat = 16
+        static let verticalPadding: CGFloat = 12
+        static let topPadding: CGFloat = 8
+        static let loadMoreThreshold: Int = 5
+        static let defaultLoadCount: Int = 40
+        static let searchDelay: TimeInterval = 0.5
+    }
+    
+    init(viewModel: UserListViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
     
     var body: some View {
         NavigationView {
-            VStack {
-                searchBar
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                if viewModel.isLoading && viewModel.filteredUsers.isEmpty {
-                    loadingView
-                } else if let errorMessage = viewModel.errorMessage, viewModel.filteredUsers.isEmpty {
-                    errorView(message: errorMessage)
-                } else if viewModel.isEmptyState || (viewModel.filteredUsers.isEmpty && viewModel.hasLoadedUsers) {
-                    emptyResultsView
-                } else {
-                    userList
+                VStack(spacing: 0) {
+                    searchBar
+                    mainContent
                 }
             }
-            .navigationTitle("users_title".localized)
-            .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
-            if viewModel.users.isEmpty {
-                viewModel.loadSavedUsers()
+            viewModel.loadSavedUsers()
+        }
+        .onChange(of: viewModel.users.count) { oldCount, newCount in
+            if newCount > Constants.loadMoreThreshold {
+                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
             }
         }
     }
     
     private var searchBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
-                .font(.system(size: 16, weight: .medium))
-            
-            TextField("search_users".localized, text: $viewModel.searchText)
-                .textFieldStyle(PlainTextFieldStyle())
-                .disableAutocorrection(true)
-                .font(.system(size: 16))
-            
-            if !viewModel.searchText.isEmpty {
-                Button(action: {
-                    viewModel.searchText = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 16))
-                }
-                .transition(.opacity)
-                .animation(.easeInOut, value: viewModel.searchText)
+        SearchBarView(searchText: $searchText)
+            .onChange(of: searchText) { oldValue, newValue in
+                viewModel.searchText = newValue
+            }
+    }
+    
+    private var mainContent: some View {
+        Group {
+            if viewModel.isLoading && viewModel.users.isEmpty {
+                loadingView
+            } else if let error = viewModel.errorMessage {
+                errorView(error: error)
+            } else if viewModel.isEmptyState {
+                emptyStateView
+            } else {
+                userList
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray6))
-                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-        )
-        .padding(.horizontal)
-        .padding(.top, 8)
     }
     
     private var loadingView: some View {
-        VStack {
-            Spacer()
-            ProgressView("loading_users".localized)
-            Spacer()
-        }
+        ProgressView()
+            .scaleEffect(1.5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    private var emptyResultsView: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            Image(systemName: viewModel.searchText.isEmpty ? "person.slash" : "magnifyingglass")
-                .font(.system(size: 50))
-                .foregroundColor(.gray)
-            
-            if viewModel.searchText.isEmpty {
-                LocalizedText("no_users_available")
-                    .font(.headline)
-                
-                LocalizedText("try_loading_users")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            } else {
-                LocalizedText("no_results_found")
-                    .font(.headline)
-                
-                LocalizedText("try_another_search")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            
-            Button(action: {
-                if viewModel.searchText.isEmpty {
-                    viewModel.loadMoreUsers()
-                } else {
-                    viewModel.searchText = ""
-                }
-            }) {
-                HStack {
-                    Image(systemName: viewModel.searchText.isEmpty ? "arrow.clockwise" : "xmark.circle")
-                    LocalizedText(viewModel.searchText.isEmpty ? "load_users" : "clear_search")
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-            }
-            
-            Spacer()
-        }
-    }
-    
-    private func errorView(message: String) -> some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            Image(systemName: viewModel.isNetworkError ? "wifi.exclamationmark" : "exclamationmark.triangle")
-                .font(.system(size: 50))
-                .foregroundColor(.red)
-                .padding()
-            
-            Text(message)
-                .foregroundColor(.red)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            if viewModel.isNetworkError {
-                LocalizedText("connection_problem")
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            Button(action: {
+    private func errorView(error: String) -> some View {
+        ErrorView(
+            message: error,
+            isNetworkError: viewModel.isNetworkError,
+            savedUsersCount: viewModel.users.count,
+            onRetry: {
                 viewModel.retryLoading()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.clockwise")
-                    LocalizedText("retry")
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
+            },
+            onContinueWithSaved: {
+                viewModel.errorMessage = nil
             }
-            
-            if !viewModel.users.isEmpty {
-                Button(action: {
-                    // Show only saved users
-                    viewModel.errorMessage = nil
-                }) {
-                    LocalizedText("continue_with_saved_users", arguments: viewModel.users.count)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
-                        .cornerRadius(8)
+        )
+    }
+    
+    private var emptyStateView: some View {
+        EmptyStateView(
+            isSearching: !searchText.isEmpty,
+            onAction: {
+                if !searchText.isEmpty {
+                    searchText = ""
+                } else {
+                    viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
                 }
             }
-            
-            Spacer()
-        }
+        )
     }
     
     private var userList: some View {
-        List {
-            // Show users
-            ForEach(viewModel.filteredUsers) { user in
-                NavigationLink(destination: 
-                    UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))
-                ) {
-                    UserRowView(
-                        user: user, 
-                        onDelete: { _ in }, // Not used with swipe
-                        viewModel: viewModel
-                    )
+        ScrollView {
+            LazyVStack(spacing: Constants.verticalPadding) {
+                ForEach(viewModel.filteredUsers) { user in
+                    userRow(for: user)
                 }
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        withAnimation {
-                            viewModel.deleteUser(withID: user.id)
-                        }
-                    } label: {
-                        Label("delete".localized, systemImage: "trash")
-                    }
-                }
-                // Detector when reaching near the end of the list
-                .onAppear {
-                    // If this is one of the last elements, load more
-                    let userIndex = viewModel.filteredUsers.firstIndex(where: { $0.id == user.id }) ?? 0
-                    let threshold = max(0, viewModel.filteredUsers.count - 5)
-                    
-                    // Detect if we're near the end
-                    if userIndex >= threshold && viewModel.searchText.isEmpty && !viewModel.isLoadingMoreUsers {
-                        viewModel.loadMoreUsers(count: 40) // Load 40 users as indicated by the API
-                    }
+                
+                if viewModel.isLoadingMoreUsers {
+                    ProgressView()
+                        .padding()
                 }
             }
-            
-            // Loading indicator at the end
-            if viewModel.isLoading && !viewModel.filteredUsers.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .id("LoadingIndicator")
-            }
+            .padding(.horizontal, Constants.horizontalPadding)
+            .padding(.top, Constants.topPadding)
         }
-        .listStyle(PlainListStyle())
         .refreshable {
-            // Pull to refresh - reset and load new users
-            viewModel.loadMoreUsers(count: 40) // Load 40 users as indicated by the API
+            isRefreshing = true
+            viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+            isRefreshing = false
         }
+    }
+    
+    private func userRow(for user: User) -> some View {
+        NavigationLink(destination: UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))) {
+            UserRowView(
+                user: user,
+                onDelete: { _ in
+                    viewModel.deleteUser(withID: user.id)
+                },
+                viewModel: viewModel
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 } 

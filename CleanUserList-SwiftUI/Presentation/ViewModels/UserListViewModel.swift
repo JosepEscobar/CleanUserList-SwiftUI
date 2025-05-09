@@ -29,6 +29,19 @@ protocol UserListViewModelType: ObservableObject {
 
 @MainActor
 final class UserListViewModel: UserListViewModelType {
+    private enum Constants {
+        static let defaultUserCount = 10
+        static let maxNetworkRetryAttempts = 3
+        static let retryDelay: UInt64 = 3_000_000_000 // 3 seconds in nanoseconds
+        static let searchDelay: UInt64 = 300_000_000 // 300ms in nanoseconds
+        
+        enum ErrorMessages {
+            static let connectionError = "Connection error. Please check your network and try again."
+            static let showingSavedUsers = "Connection error. Showing saved users."
+            static let tooManyAttempts = "Too many failed attempts. Users could not be loaded."
+        }
+    }
+    
     // MARK: - Published Properties
     @Published var users: [User] = []
     @Published var filteredUsers: [User] = []
@@ -55,9 +68,8 @@ final class UserListViewModel: UserListViewModelType {
     private let loadImageUseCase: LoadImageUseCase
     
     // MARK: - Private Properties
-    private var lastRequestedCount: Int = 10
+    private var lastRequestedCount: Int = Constants.defaultUserCount
     private var networkRetryAttempts: Int = 0
-    private let maxNetworkRetryAttempts: Int = 3
     private var searchTask: Task<Void, Never>? = nil
     private var loadMoreTask: Task<Void, Never>? = nil
     
@@ -126,7 +138,7 @@ final class UserListViewModel: UserListViewModelType {
         searchTask = Task { [weak self] in
             guard let self = self else { return }
             do {
-                try await Task.sleep(nanoseconds: 300_000_000) // 300ms
+                try await Task.sleep(nanoseconds: Constants.searchDelay)
                 
                 if !query.isEmpty {
                     isLoading = true
@@ -164,15 +176,15 @@ final class UserListViewModel: UserListViewModelType {
         self.isNetworkError = isNetworkRelatedError
         
         if isNetworkRelatedError {
-            errorMessage = "Connection error. Please check your network and try again."
+            errorMessage = Constants.ErrorMessages.connectionError
             
             if !users.isEmpty {
-                errorMessage = "Connection error. Showing saved users."
+                errorMessage = Constants.ErrorMessages.showingSavedUsers
                 
                 Task { [weak self] in
                     guard let self = self else { return }
-                    try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                    if self.errorMessage == "Connection error. Showing saved users." {
+                    try? await Task.sleep(nanoseconds: Constants.retryDelay)
+                    if self.errorMessage == Constants.ErrorMessages.showingSavedUsers {
                         self.errorMessage = nil
                     }
                 }
@@ -215,8 +227,8 @@ final class UserListViewModel: UserListViewModelType {
     func retryLoading() {
         networkRetryAttempts += 1
         
-        if networkRetryAttempts > maxNetworkRetryAttempts {
-            errorMessage = "Too many failed attempts. Users could not be loaded."
+        if networkRetryAttempts > Constants.maxNetworkRetryAttempts {
+            errorMessage = Constants.ErrorMessages.tooManyAttempts
             hasLoadedUsers = true
         } else {
             // Use the same simplified loading function
@@ -282,13 +294,13 @@ final class UserListViewModel: UserListViewModelType {
             self.hasLoadedUsers = true
             
             if savedUsers.isEmpty {
-                await loadMoreUsersAsync(count: 10)
+                await loadMoreUsersAsync(count: Constants.defaultUserCount)
             }
             
         } catch {
             self.handleError(error)
             
-            await loadMoreUsersAsync(count: 10)
+            await loadMoreUsersAsync(count: Constants.defaultUserCount)
         }
         
         isLoading = false

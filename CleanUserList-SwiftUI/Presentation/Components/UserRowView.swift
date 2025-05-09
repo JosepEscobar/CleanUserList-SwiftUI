@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct UserRowView: View {
+    private enum Constants {
+        static let spacing: CGFloat = 16
+        static let imageSize: CGFloat = 60
+        static let verticalPadding: CGFloat = 8
+        static let textSpacing: CGFloat = 4
+    }
+    
     let user: User
     let onDelete: (String) -> Void
     let viewModel: any UserListViewModelType
@@ -12,21 +19,12 @@ struct UserRowView: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
-            UserAsyncImageView(
-                url: URL(string: user.picture.medium.absoluteString),
-                viewModel: viewModel
-            ) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                ProgressView()
-            }
-            .frame(width: 60, height: 60)
-            .clipShape(Circle())
+        HStack(spacing: Constants.spacing) {
+            UserAsyncImageView(url: user.picture.medium)
+                .frame(width: Constants.imageSize, height: Constants.imageSize)
+                .clipShape(Circle())
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Constants.textSpacing) {
                 Text(user.fullName)
                     .font(.headline)
                 
@@ -41,7 +39,7 @@ struct UserRowView: View {
             
             Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Constants.verticalPadding)
     }
 }
 

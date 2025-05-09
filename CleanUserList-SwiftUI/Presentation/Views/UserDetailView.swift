@@ -1,33 +1,46 @@
 import SwiftUI
 
 struct UserDetailView: View {
+    private enum Constants {
+        static let cornerRadius: CGFloat = 16
+        static let shadowOpacity: Double = 0.1
+        static let shadowRadius: CGFloat = 10
+        static let shadowOffsetY: CGFloat = 2
+        static let horizontalPadding: CGFloat = 16
+        static let bottomPadding: CGFloat = 20
+        static let minSpacing: CGFloat = 40
+        static let iconSize: CGFloat = 18
+        static let iconCircleSize: CGFloat = 36
+        static let rowSpacing: CGFloat = 16
+        static let textSpacing: CGFloat = 4
+        static let profileImageSize: CGFloat = 160
+        static let profileImageStrokeWidth: CGFloat = 3
+        static let profileImageShadowRadius: CGFloat = 8
+        static let profileImageTopPadding: CGFloat = 32
+        static let cardSpacing: CGFloat = 24
+        static let cardContentSpacing: CGFloat = 20
+        static let cardPadding: CGFloat = 20
+        static let blueOpacity: Double = 0.2
+    }
+    
     @ObservedObject var viewModel: UserDetailViewModel
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .center, spacing: 24) {
+            VStack(alignment: .center, spacing: Constants.cardSpacing) {
                 // Profile image
-                UserAsyncImageView(
-                    url: viewModel.largePictureURL,
-                    viewModel: viewModel
-                ) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    ProgressView()
-                }
-                .frame(width: 160, height: 160)
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.blue.opacity(0.2), lineWidth: 3)
-                )
-                .shadow(color: Color.black.opacity(0.2), radius: 8)
-                .padding(.top, 32)
+                UserAsyncImageView(url: viewModel.largePictureURL)
+                    .frame(width: Constants.profileImageSize, height: Constants.profileImageSize)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.blue.opacity(Constants.blueOpacity), lineWidth: Constants.profileImageStrokeWidth)
+                    )
+                    .shadow(color: Color.black.opacity(Constants.shadowOpacity), radius: Constants.profileImageShadowRadius)
+                    .padding(.top, Constants.profileImageTopPadding)
                 
                 // Information card
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Constants.cardContentSpacing) {
                     detailRow(icon: "person.fill", key: "name", value: viewModel.fullName)
                     Divider()
                     detailRow(icon: "envelope.fill", key: "email", value: viewModel.email)
@@ -40,17 +53,20 @@ struct UserDetailView: View {
                     Divider()
                     detailRow(icon: "calendar", key: "registration_date", value: viewModel.registeredDate)
                 }
-                .padding(20)
+                .padding(Constants.cardPadding)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: Constants.cornerRadius)
                         .fill(Color(UIColor.systemBackground))
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(Constants.shadowOpacity), 
+                               radius: Constants.shadowRadius, 
+                               x: 0, 
+                               y: Constants.shadowOffsetY)
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Constants.horizontalPadding)
                 
-                Spacer(minLength: 40)
+                Spacer(minLength: Constants.minSpacing)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, Constants.bottomPadding)
         }
         .navigationTitle("user_details".localized)
         .navigationBarTitleDisplayMode(.inline)
@@ -59,15 +75,15 @@ struct UserDetailView: View {
     }
     
     private func detailRow(icon: String, key: String, value: String) -> some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: Constants.rowSpacing) {
             // Icon in circle
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: Constants.iconSize, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 36, height: 36)
+                .frame(width: Constants.iconCircleSize, height: Constants.iconCircleSize)
                 .background(Circle().fill(Color.blue))
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Constants.textSpacing) {
                 LocalizedText(key)
                     .font(.subheadline)
                     .fontWeight(.medium)
