@@ -67,7 +67,7 @@ protocol APIClient {
 @MainActor
 class DefaultAPIClient: APIClient {
     private enum Constants {
-        static let baseURL = "http://api.randomuser.me"
+        static let baseURL = "https://api.randomuser.me"
         static let dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         static let locale = "en_US_POSIX"
     }
