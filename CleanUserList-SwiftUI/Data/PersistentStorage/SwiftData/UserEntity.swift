@@ -3,6 +3,10 @@ import SwiftData
 
 @Model
 final class UserEntity {
+    #Unique<UserEntity>([\.id])
+    
+    #Index<UserEntity>([\.id], [\.name], [\.fullName], [\.email])
+    
     @Attribute(.unique) var id: String = ""
     var name: String = ""
     var surname: String = ""
@@ -58,7 +62,6 @@ final class UserEntity {
         self.thumbnailImageURL = thumbnailImageURL
     }
     
-    // Inicializador sin parámetros que requiere SwiftData
     init() {
     }
     

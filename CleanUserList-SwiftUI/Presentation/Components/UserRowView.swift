@@ -3,10 +3,20 @@ import SwiftUI
 struct UserRowView: View {
     let user: User
     let onDelete: (String) -> Void
+    let viewModel: any UserListViewModelType
+    
+    init(user: User, onDelete: @escaping (String) -> Void, viewModel: any UserListViewModelType) {
+        self.user = user
+        self.onDelete = onDelete
+        self.viewModel = viewModel
+    }
     
     var body: some View {
         HStack(spacing: 16) {
-            AsyncImage(url: user.picture.medium) { image in
+            UserAsyncImageView(
+                url: URL(string: user.picture.medium.absoluteString),
+                viewModel: viewModel
+            ) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -24,19 +34,12 @@ struct UserRowView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                Text(user.phone)
+                Text(user.location.city)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             
             Spacer()
-            
-            Button(action: {
-                onDelete(user.id)
-            }) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-            }
         }
         .padding(.vertical, 8)
     }
@@ -62,9 +65,44 @@ struct UserRowView_Previews: PreviewProvider {
             )
         )
         
-        UserRowView(user: sampleUser, onDelete: { _ in })
+        let mockViewModel = MockUserListViewModel()
+        
+        UserRowView(user: sampleUser, onDelete: { _ in }, viewModel: mockViewModel)
             .previewLayout(.sizeThatFits)
             .padding()
+    }
+}
+
+@MainActor
+private class MockUserListViewModel: UserListViewModelType {
+    var users: [User] = []
+    var filteredUsers: [User] = []
+    var isLoading: Bool = false
+    var errorMessage: String? = nil
+    var searchText: String = ""
+    var isNetworkError: Bool = false
+    var hasLoadedUsers: Bool = false
+    var isEmptyState: Bool = false
+    var isLoadingMoreUsers: Bool = false
+    
+    func loadMoreUsers(count: Int = 10) {}
+    func loadSavedUsers() {}
+    func deleteUser(withID id: String) {}
+    func retryLoading() {}
+    func reset() {}
+    
+    func makeUserDetailViewModel(for user: User) -> UserDetailViewModel {
+        // This is only for testing, never actually called
+        fatalError("Not implemented for testing")
+    }
+    
+    func loadImage(from url: URL) async throws -> Image {
+        // Return placeholder image for preview
+        return Image(systemName: "person.circle.fill")
+    }
+    
+    func handleLanguageChange() {
+        // No-op for preview
     }
 }
 #endif 

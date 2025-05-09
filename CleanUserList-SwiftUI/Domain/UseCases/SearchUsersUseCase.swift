@@ -1,10 +1,9 @@
-import Foundation
-import Combine
-
+@MainActor
 protocol SearchUsersUseCase {
-    func execute(query: String) -> AnyPublisher<[User], Error>
+    func execute(query: String) async throws -> [User]
 }
 
+@MainActor
 class DefaultSearchUsersUseCase: SearchUsersUseCase {
     private let repository: UserRepository
     
@@ -12,7 +11,7 @@ class DefaultSearchUsersUseCase: SearchUsersUseCase {
         self.repository = repository
     }
     
-    func execute(query: String) -> AnyPublisher<[User], Error> {
-        return repository.searchUsers(query: query)
+    func execute(query: String) async throws -> [User] {
+        return try await repository.searchUsers(query: query)
     }
 } 

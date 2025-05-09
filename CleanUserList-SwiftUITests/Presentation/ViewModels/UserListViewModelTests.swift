@@ -1,180 +1,186 @@
 import XCTest
-import Combine
 @testable import CleanUserList_SwiftUI
 
-final class UserListViewModelTests: XCTestCase {
-    private var cancellables = Set<AnyCancellable>()
+@MainActor
+class UserListViewModelTests: XCTestCase {
     
-    override func tearDown() {
-        cancellables.removeAll()
-        super.tearDown()
-    }
-    
-    func testLoadUsersSuccess() {
-        // Given
-        let expectedUsers = [createTestUser(id: "1"), createTestUser(id: "2")]
-        let mockGetUsersUseCase = MockGetUsersUseCase(result: .success(expectedUsers))
-        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success([]))
-        let mockDeleteUserUseCase = MockDeleteUserUseCase()
-        let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let testQueue = DispatchQueue.immediate
-        
-        let viewModel = UserListViewModel(
-            getUsersUseCase: mockGetUsersUseCase,
-            getSavedUsersUseCase: mockGetSavedUsersUseCase,
-            deleteUserUseCase: mockDeleteUserUseCase,
-            searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: testQueue
-        )
-        
-        // Se inicializa llamando a loadSavedUsers, lo reseteamos para control de prueba
-        viewModel.reset()
-        
-        let expectation = self.expectation(description: "Users loaded")
-        
-        // When
-        viewModel.$users
-            .dropFirst() // Ignoramos el valor inicial de users (vacío)
-            .sink { users in
-                if users.count == expectedUsers.count {
-                    expectation.fulfill()
-                }
-            }
-            .store(in: &cancellables)
-        
-        viewModel.loadMoreUsers(count: 2)
-        
-        // Then
-        waitForExpectations(timeout: 1.0)
-        XCTAssertEqual(viewModel.users.count, expectedUsers.count)
-        XCTAssertEqual(viewModel.users[0].id, expectedUsers[0].id)
-        XCTAssertEqual(viewModel.filteredUsers.count, expectedUsers.count)
-        XCTAssertFalse(viewModel.isLoading)
-        XCTAssertNil(viewModel.errorMessage)
-    }
-    
-    func testLoadUsersFailure() {
-        // Given
-        let expectedError = NSError(domain: "test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Error loading users"])
-        let mockGetUsersUseCase = MockGetUsersUseCase(result: .failure(expectedError))
-        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success([]))
-        let mockDeleteUserUseCase = MockDeleteUserUseCase()
-        let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let testQueue = DispatchQueue.immediate
-        
-        let viewModel = UserListViewModel(
-            getUsersUseCase: mockGetUsersUseCase,
-            getSavedUsersUseCase: mockGetSavedUsersUseCase,
-            deleteUserUseCase: mockDeleteUserUseCase,
-            searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: testQueue
-        )
-        
-        // Se inicializa llamando a loadSavedUsers, lo reseteamos para control de prueba
-        viewModel.reset()
-        
-        let expectation = self.expectation(description: "Error loaded")
-        
-        // When
-        viewModel.$errorMessage
-            .dropFirst() // Ignoramos el valor inicial de errorMessage (nil)
-            .compactMap { $0 }
-            .sink { _ in
-                expectation.fulfill()
-            }
-            .store(in: &cancellables)
-        
-        viewModel.loadMoreUsers(count: 2)
-        
-        // Then
-        waitForExpectations(timeout: 1.0)
-        XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertFalse(viewModel.isLoading)
-    }
-    
-    func testDeleteUser() {
+    func testLoadMoreUsers() async {
         // Given
         let users = [createTestUser(id: "1"), createTestUser(id: "2")]
-        let mockGetUsersUseCase = MockGetUsersUseCase(result: .success(users))
-        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success(users))
+        let mockGetUsersUseCase = MockGetUsersUseCase(users: users)
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: [])
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
-        let mockSearchUsersUseCase = MockSearchUsersUseCase()
-        let testQueue = DispatchQueue.immediate
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(users: [])
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
-            searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: testQueue
+            searchUsersUseCase: mockSearchUsersUseCase
         )
         
-        let expectation = self.expectation(description: "User deleted")
-        
         // When
-        viewModel.$users
-            .dropFirst(2) // Ignoramos valores iniciales
-            .sink { users in
-                if users.count == 1 {
-                    expectation.fulfill()
-                }
-            }
-            .store(in: &cancellables)
+        viewModel.loadMoreUsers(count: 2)
         
-        viewModel.deleteUser(withID: "1")
+        await Task.yield()
         
         // Then
-        waitForExpectations(timeout: 1.0)
+        XCTAssertEqual(viewModel.users.count, 2)
+        XCTAssertEqual(viewModel.filteredUsers.count, 2)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.hasLoadedUsers)
+    }
+    
+    func testLoadMoreUsersError() async {
+        // Given
+        let mockError = NSError(domain: "test", code: -1)
+        let mockGetUsersUseCase = MockGetUsersUseCase(error: mockError)
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: [])
+        let mockDeleteUserUseCase = MockDeleteUserUseCase()
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(users: [])
+        
+        let viewModel = UserListViewModel(
+            getUsersUseCase: mockGetUsersUseCase,
+            getSavedUsersUseCase: mockGetSavedUsersUseCase,
+            deleteUserUseCase: mockDeleteUserUseCase,
+            searchUsersUseCase: mockSearchUsersUseCase
+        )
+        
+        // When
+        viewModel.loadMoreUsers(count: 2)
+        
+        await Task.yield()
+        
+        // Then
+        XCTAssertEqual(viewModel.users.count, 0)
+        XCTAssertEqual(viewModel.filteredUsers.count, 0)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.hasLoadedUsers)
+    }
+    
+    func testLoadSavedUsers() async {
+        // Given
+        let users = [createTestUser(id: "1"), createTestUser(id: "2")]
+        let mockGetUsersUseCase = MockGetUsersUseCase(users: [])
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: users)
+        let mockDeleteUserUseCase = MockDeleteUserUseCase()
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(users: [])
+        
+        let viewModel = UserListViewModel(
+            getUsersUseCase: mockGetUsersUseCase,
+            getSavedUsersUseCase: mockGetSavedUsersUseCase,
+            deleteUserUseCase: mockDeleteUserUseCase,
+            searchUsersUseCase: mockSearchUsersUseCase
+        )
+        
+        // When
+        viewModel.loadSavedUsers()
+        
+        await Task.yield()
+        
+        // Then
+        XCTAssertEqual(viewModel.users.count, 2)
+        XCTAssertEqual(viewModel.filteredUsers.count, 2)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.hasLoadedUsers)
+    }
+    
+    func testLoadSavedUsersEmpty() async {
+        // Given
+        let mockGetUsersUseCase = MockGetUsersUseCase(users: [createTestUser(id: "1")])
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: [])
+        let mockDeleteUserUseCase = MockDeleteUserUseCase()
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(users: [])
+        
+        let viewModel = UserListViewModel(
+            getUsersUseCase: mockGetUsersUseCase,
+            getSavedUsersUseCase: mockGetSavedUsersUseCase,
+            deleteUserUseCase: mockDeleteUserUseCase,
+            searchUsersUseCase: mockSearchUsersUseCase
+        )
+        
+        // When
+        viewModel.loadSavedUsers()
+        
+        await Task.yield()
+        await Task.sleep(nanoseconds: 500_000_000) 
+        
+        // Then
         XCTAssertEqual(viewModel.users.count, 1)
-        XCTAssertEqual(viewModel.users[0].id, "2")
+        XCTAssertEqual(viewModel.filteredUsers.count, 1)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.hasLoadedUsers)
+    }
+    
+    func testDeleteUser() async {
+        // Given
+        let users = [createTestUser(id: "1"), createTestUser(id: "2")]
+        let mockGetUsersUseCase = MockGetUsersUseCase(users: [])
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: users)
+        let mockDeleteUserUseCase = MockDeleteUserUseCase()
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(users: [])
+        
+        let viewModel = UserListViewModel(
+            getUsersUseCase: mockGetUsersUseCase,
+            getSavedUsersUseCase: mockGetSavedUsersUseCase,
+            deleteUserUseCase: mockDeleteUserUseCase,
+            searchUsersUseCase: mockSearchUsersUseCase
+        )
+        
+        viewModel.loadSavedUsers()
+        await Task.yield()
+        
+        // When
+        viewModel.deleteUser(withID: "1")
+        
+        await Task.yield()
+        
+        // Then
+        XCTAssertEqual(viewModel.users.count, 1)
+        XCTAssertEqual(viewModel.filteredUsers.count, 1)
+        XCTAssertEqual(viewModel.users.first?.id, "2")
         XCTAssertEqual(mockDeleteUserUseCase.deletedUserID, "1")
     }
     
-    func testSearchUsers() {
+    func testSearchUsers() async {
         // Given
         let users = [
-            createTestUser(id: "1", name: "John", surname: "Doe", email: "john@example.com"),
-            createTestUser(id: "2", name: "Jane", surname: "Smith", email: "jane@example.com")
+            createTestUser(id: "1", name: "John", surname: "Doe"),
+            createTestUser(id: "2", name: "Jane", surname: "Smith")
         ]
-        let mockGetUsersUseCase = MockGetUsersUseCase(result: .success(users))
-        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(result: .success(users))
-        
-        let filteredUsers = [users[0]] // Solo John Doe
-        let mockSearchUsersUseCase = MockSearchUsersUseCase(result: .success(filteredUsers))
-        
+        let mockGetUsersUseCase = MockGetUsersUseCase(users: [])
+        let mockGetSavedUsersUseCase = MockGetSavedUsersUseCase(users: users)
         let mockDeleteUserUseCase = MockDeleteUserUseCase()
-        let testQueue = DispatchQueue.immediate
+        let mockSearchUsersUseCase = MockSearchUsersUseCase(
+            searchHandler: { query in
+                return users.filter { $0.fullName.lowercased().contains(query.lowercased()) }
+            }
+        )
         
         let viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
-            searchUsersUseCase: mockSearchUsersUseCase,
-            scheduler: testQueue
+            searchUsersUseCase: mockSearchUsersUseCase
         )
         
-        let expectation = self.expectation(description: "Search filter applied")
+        viewModel.loadSavedUsers()
+        await Task.yield()
         
         // When
-        viewModel.$filteredUsers
-            .dropFirst(2) // Ignoramos valores iniciales
-            .sink { filteredUsers in
-                if filteredUsers.count == 1 && filteredUsers[0].id == "1" {
-                    expectation.fulfill()
-                }
-            }
-            .store(in: &cancellables)
+        viewModel.searchText = "john"
         
-        viewModel.searchText = "John"
+        await Task.yield()
+        await Task.sleep(nanoseconds: 400_000_000)
         
         // Then
-        waitForExpectations(timeout: 1.0)
         XCTAssertEqual(viewModel.filteredUsers.count, 1)
-        XCTAssertEqual(viewModel.filteredUsers[0].id, "1")
-        XCTAssertEqual(mockSearchUsersUseCase.lastSearchQuery, "John")
+        XCTAssertEqual(viewModel.filteredUsers.first?.id, "1")
     }
-    
-    // MARK: - Helper Methods
     
     private func createTestUser(id: String, name: String = "John", surname: String = "Doe", email: String = "john@example.com") -> User {
         return User(
@@ -199,67 +205,69 @@ final class UserListViewModelTests: XCTestCase {
 // MARK: - Mocks
 
 class MockGetUsersUseCase: GetUsersUseCase {
-    private let result: Result<[User], Error>
+    private let users: [User]
+    private let error: Error?
     
-    init(result: Result<[User], Error>) {
-        self.result = result
+    init(users: [User] = [], error: Error? = nil) {
+        self.users = users
+        self.error = error
     }
     
-    func execute(count: Int) -> AnyPublisher<[User], Error> {
-        return result.publisher.eraseToAnyPublisher()
+    func execute(count: Int) async throws -> [User] {
+        if let error = error {
+            throw error
+        }
+        return users
     }
 }
 
 class MockGetSavedUsersUseCase: GetSavedUsersUseCase {
-    private let result: Result<[User], Error>
+    private let users: [User]
+    private let error: Error?
     
-    init(result: Result<[User], Error>) {
-        self.result = result
+    init(users: [User] = [], error: Error? = nil) {
+        self.users = users
+        self.error = error
     }
     
-    func execute() -> AnyPublisher<[User], Error> {
-        return result.publisher.eraseToAnyPublisher()
+    func execute() async throws -> [User] {
+        if let error = error {
+            throw error
+        }
+        return users
     }
 }
 
 class MockDeleteUserUseCase: DeleteUserUseCase {
     var deletedUserID: String?
+    var error: Error?
     
-    func execute(userID: String) -> AnyPublisher<Void, Error> {
+    func execute(userID: String) async throws {
+        if let error = error {
+            throw error
+        }
         deletedUserID = userID
-        return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
     }
 }
 
 class MockSearchUsersUseCase: SearchUsersUseCase {
-    private let result: Result<[User], Error>
-    var lastSearchQuery: String?
+    private let users: [User]
+    private let error: Error?
+    private let searchHandler: ((String) -> [User])?
     
-    init(result: Result<[User], Error> = .success([])) {
-        self.result = result
+    init(users: [User] = [], error: Error? = nil, searchHandler: ((String) -> [User])? = nil) {
+        self.users = users
+        self.error = error
+        self.searchHandler = searchHandler
     }
     
-    func execute(query: String) -> AnyPublisher<[User], Error> {
-        lastSearchQuery = query
-        return result.publisher.eraseToAnyPublisher()
-    }
-}
-
-// MARK: - Immediate Dispatch Queue para tests
-extension DispatchQueue {
-    static var immediate: DispatchQueue {
-        return Immediate.shared
-    }
-    
-    private final class Immediate: DispatchQueue {
-        static let shared = Immediate()
-        
-        private init() {
-            super.init(label: "com.immediate.queue")
+    func execute(query: String) async throws -> [User] {
+        if let error = error {
+            throw error
         }
-        
-        override func async(execute work: @escaping () -> Void) {
-            work()
+        if let searchHandler = searchHandler {
+            return searchHandler(query)
         }
+        return users
     }
 } 

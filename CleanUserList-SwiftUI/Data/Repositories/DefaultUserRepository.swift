@@ -1,54 +1,51 @@
 import Foundation
-import Combine
 
+@MainActor
 class DefaultUserRepository: UserRepository {
     private let apiClient: APIClient
     private let userStorage: UserStorage
+    private var lastRequestedCount: Int = 0
     
     init(apiClient: APIClient, userStorage: UserStorage) {
         self.apiClient = apiClient
         self.userStorage = userStorage
     }
     
-    func getUsers(count: Int) -> AnyPublisher<[User], Error> {
-        return apiClient.getUsers(count: count)
-            .map { response in
-                response.results.map { $0.toDomain() }
-            }
-            .flatMap { [weak self] users -> AnyPublisher<[User], Error> in
-                guard let self = self else {
-                    return Fail(error: RepositoryError.unknown).eraseToAnyPublisher()
-                }
-                
-                return self.saveUsers(users)
-                    .map { users }
-                    .eraseToAnyPublisher()
-            }
-            .eraseToAnyPublisher()
+    func getUsers(count: Int) async throws -> [User] {
+        do {
+            self.lastRequestedCount = count
+            
+            let response = try await apiClient.getUsers(count: count)
+            let users = response.results.map { $0.toDomain() }
+            
+            try await saveUsers(users)
+            
+            return users
+        } catch {
+            throw error
+        }
     }
     
-    func saveUsers(_ users: [User]) -> AnyPublisher<Void, Error> {
-        return userStorage.saveUsers(users)
+    func saveUsers(_ users: [User]) async throws {
+        try await userStorage.saveUsers(users)
     }
     
-    func deleteUser(withID id: String) -> AnyPublisher<Void, Error> {
-        return userStorage.deleteUser(withID: id)
+    func deleteUser(withID id: String) async throws {
+        try await userStorage.deleteUser(withID: id)
     }
     
-    func searchUsers(query: String) -> AnyPublisher<[User], Error> {
-        return getSavedUsers()
-            .map { users in
-                let lowercasedQuery = query.lowercased()
-                return users.filter { user in
-                    user.fullName.lowercased().contains(lowercasedQuery) ||
-                    user.email.lowercased().contains(lowercasedQuery)
-                }
-            }
-            .eraseToAnyPublisher()
+    func searchUsers(query: String) async throws -> [User] {
+        let users = try await getSavedUsers()
+        
+        let lowercasedQuery = query.lowercased()
+        return users.filter { user in
+            user.fullName.lowercased().contains(lowercasedQuery) ||
+            user.email.lowercased().contains(lowercasedQuery)
+        }
     }
     
-    func getSavedUsers() -> AnyPublisher<[User], Error> {
-        return userStorage.getUsers()
+    func getSavedUsers() async throws -> [User] {
+        return try await userStorage.getUsers()
     }
 }
 

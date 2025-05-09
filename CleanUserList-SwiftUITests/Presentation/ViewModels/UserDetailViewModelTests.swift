@@ -1,75 +1,45 @@
 import XCTest
-import Combine
 @testable import CleanUserList_SwiftUI
 
-final class UserDetailViewModelTests: XCTestCase {
+class UserDetailViewModelTests: XCTestCase {
     
-    func testUserDetailViewModel() {
+    func testUserDetailProperties() {
         // Given
-        let testUser = createTestUser()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
-        
-        // When
-        let viewModel = UserDetailViewModel(user: testUser, dateFormatter: dateFormatter)
-        
-        // Then
-        XCTAssertEqual(viewModel.name, "John Doe")
-        XCTAssertEqual(viewModel.email, "john@example.com")
-        XCTAssertEqual(viewModel.phone, "123-456-7890")
-        XCTAssertEqual(viewModel.gender, "male")
-        XCTAssertEqual(viewModel.location, "123 Main St, Anytown, State")
-        
-        // Verificar el formateador de fecha
-        let formattedDate = dateFormatter.string(from: testUser.registeredDate)
-        XCTAssertEqual(viewModel.registeredDate, formattedDate)
-        
-        // Verificar URLs
-        XCTAssertEqual(viewModel.pictureURL, testUser.picture.large)
-    }
-    
-    func testUserDetailViewModelWithCustomDateFormatter() {
-        // Given
-        let testUser = createTestUser()
-        let customDateFormatter = DateFormatter()
-        customDateFormatter.dateStyle = .full
-        customDateFormatter.timeStyle = .none
-        
-        // When
-        let viewModel = UserDetailViewModel(user: testUser, dateFormatter: customDateFormatter)
-        
-        // Then
-        // Verificar el formateador de fecha personalizado
-        let formattedDate = customDateFormatter.string(from: testUser.registeredDate)
-        XCTAssertEqual(viewModel.registeredDate, formattedDate)
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func createTestUser() -> User {
-        let dateComponents = DateComponents(
-            calendar: Calendar.current,
-            year: 2022, month: 1, day: 1,
-            hour: 10, minute: 30, second: 0
-        )
-        let date = dateComponents.date!
-        
-        return User(
-            id: "test-id",
+        let user = User(
+            id: "123",
             name: "John",
             surname: "Doe",
             fullName: "John Doe",
-            email: "john@example.com",
+            email: "john.doe@example.com",
             phone: "123-456-7890",
             gender: "male",
-            location: Location(street: "123 Main St", city: "Anytown", state: "State"),
-            registeredDate: date,
+            location: Location(
+                street: "123 Main St",
+                city: "New York",
+                state: "NY"
+            ),
+            registeredDate: Date(),
             picture: Picture(
-                large: URL(string: "https://randomuser.me/api/portraits/men/1.jpg")!,
-                medium: URL(string: "https://randomuser.me/api/portraits/med/men/1.jpg")!,
-                thumbnail: URL(string: "https://randomuser.me/api/portraits/thumb/men/1.jpg")!
+                large: URL(string: "https://example.com/large.jpg")!,
+                medium: URL(string: "https://example.com/medium.jpg")!,
+                thumbnail: URL(string: "https://example.com/thumbnail.jpg")!
             )
         )
+        
+        // When
+        let viewModel = UserDetailViewModel(user: user)
+        
+        // Then
+        XCTAssertEqual(viewModel.id, "123")
+        XCTAssertEqual(viewModel.fullName, "John Doe")
+        XCTAssertEqual(viewModel.email, "john.doe@example.com")
+        XCTAssertEqual(viewModel.phone, "123-456-7890")
+        XCTAssertEqual(viewModel.gender, "male")
+        XCTAssertEqual(viewModel.location, "123 Main St, New York, NY")
+        XCTAssertEqual(viewModel.largePictureURL, URL(string: "https://example.com/large.jpg")!)
+        XCTAssertEqual(viewModel.mediumPictureURL, URL(string: "https://example.com/medium.jpg")!)
+        XCTAssertEqual(viewModel.thumbnailPictureURL, URL(string: "https://example.com/thumbnail.jpg")!)
+        
+        XCTAssertFalse(viewModel.registeredDate.isEmpty)
     }
 } 

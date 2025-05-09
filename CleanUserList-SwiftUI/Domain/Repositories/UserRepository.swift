@@ -1,10 +1,10 @@
 import Foundation
-import Combine
 
+@MainActor
 protocol UserRepository {
-    func getUsers(count: Int) -> AnyPublisher<[User], Error>
-    func saveUsers(_ users: [User]) -> AnyPublisher<Void, Error>
-    func deleteUser(withID id: String) -> AnyPublisher<Void, Error>
-    func searchUsers(query: String) -> AnyPublisher<[User], Error>
-    func getSavedUsers() -> AnyPublisher<[User], Error>
+    func getUsers(count: Int) async throws -> [User]
+    func saveUsers(_ users: [User]) async throws
+    func deleteUser(withID id: String) async throws
+    func searchUsers(query: String) async throws -> [User]
+    func getSavedUsers() async throws -> [User]
 } 

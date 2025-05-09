@@ -1,10 +1,9 @@
-import Foundation
-import Combine
-
+@MainActor
 protocol GetUsersUseCase {
-    func execute(count: Int) -> AnyPublisher<[User], Error>
+    func execute(count: Int) async throws -> [User]
 }
 
+@MainActor
 class DefaultGetUsersUseCase: GetUsersUseCase {
     private let repository: UserRepository
     
@@ -12,7 +11,7 @@ class DefaultGetUsersUseCase: GetUsersUseCase {
         self.repository = repository
     }
     
-    func execute(count: Int) -> AnyPublisher<[User], Error> {
-        return repository.getUsers(count: count)
+    func execute(count: Int) async throws -> [User] {
+        return try await repository.getUsers(count: count)
     }
 } 

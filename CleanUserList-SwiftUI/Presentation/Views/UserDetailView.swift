@@ -5,57 +5,80 @@ struct UserDetailView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .center, spacing: 20) {
-                AsyncImage(url: viewModel.pictureURL) { image in
+            VStack(alignment: .center, spacing: 24) {
+                // Profile image
+                UserAsyncImageView(
+                    url: viewModel.largePictureURL,
+                    viewModel: viewModel
+                ) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     ProgressView()
                 }
-                .frame(width: 150, height: 150)
+                .frame(width: 160, height: 160)
                 .clipShape(Circle())
-                .shadow(radius: 5)
-                .padding(.top, 20)
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    detailRow(icon: "person.fill", title: "Nombre", value: viewModel.name)
-                    detailRow(icon: "envelope.fill", title: "Email", value: viewModel.email)
-                    detailRow(icon: "phone.fill", title: "Teléfono", value: viewModel.phone)
-                    detailRow(icon: "figure.wave", title: "Género", value: viewModel.gender)
-                    detailRow(icon: "mappin.and.ellipse", title: "Dirección", value: viewModel.location)
-                    detailRow(icon: "calendar", title: "Fecha de registro", value: viewModel.registeredDate)
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(UIColor.systemBackground))
-                        .shadow(color: Color.black.opacity(0.1), radius: 5)
+                .overlay(
+                    Circle()
+                        .stroke(Color.blue.opacity(0.2), lineWidth: 3)
                 )
-                .padding(.horizontal)
+                .shadow(color: Color.black.opacity(0.2), radius: 8)
+                .padding(.top, 32)
                 
-                Spacer()
+                // Information card
+                VStack(alignment: .leading, spacing: 20) {
+                    detailRow(icon: "person.fill", key: "name", value: viewModel.fullName)
+                    Divider()
+                    detailRow(icon: "envelope.fill", key: "email", value: viewModel.email)
+                    Divider()
+                    detailRow(icon: "phone.fill", key: "phone", value: viewModel.phone)
+                    Divider()
+                    detailRow(icon: "figure.wave", key: "gender", value: viewModel.gender)
+                    Divider()
+                    detailRow(icon: "mappin.and.ellipse", key: "address", value: viewModel.location)
+                    Divider()
+                    detailRow(icon: "calendar", key: "registration_date", value: viewModel.registeredDate)
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(UIColor.systemBackground))
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 2)
+                )
+                .padding(.horizontal, 16)
+                
+                Spacer(minLength: 40)
             }
             .padding(.bottom, 20)
         }
-        .navigationTitle("Detalle del usuario")
+        .navigationTitle("user_details".localized)
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
+        .id(viewModel.refreshID)
     }
     
-    private func detailRow(icon: String, title: String, value: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+    private func detailRow(icon: String, key: String, value: String) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            // Icon in circle
             Image(systemName: icon)
-                .foregroundColor(.blue)
-                .frame(width: 24, height: 24)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.blue))
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.caption)
+                LocalizedText(key)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
                     .foregroundColor(.secondary)
                 
                 Text(value)
                     .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             Spacer()

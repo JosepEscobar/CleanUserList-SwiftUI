@@ -1,32 +1,35 @@
-import Foundation
-import Combine
+@preconcurrency import Foundation
+import SwiftUI
 
-protocol UserDetailViewModelType: ObservableObject {
-    var user: User { get }
-    var name: String { get }
-    var email: String { get }
-    var phone: String { get }
-    var gender: String { get }
-    var location: String { get }
-    var registeredDate: String { get }
-    var pictureURL: URL { get }
-}
-
-class UserDetailViewModel: UserDetailViewModelType {
-    // MARK: - Published Properties
-    @Published var user: User
+@MainActor
+final class UserDetailViewModel: ObservableObject {
+    @Published var refreshID = UUID()
+    let loadImageUseCase: LoadImageUseCase
+    private let user: User
     
-    // MARK: - Formatters
-    private let dateFormatter: DateFormatter
-    
-    // MARK: - Initializer
-    init(user: User, dateFormatter: DateFormatter = UserDetailViewModel.createDefaultDateFormatter()) {
+    init(user: User, loadImageUseCase: LoadImageUseCase) {
         self.user = user
-        self.dateFormatter = dateFormatter
+        self.loadImageUseCase = loadImageUseCase
     }
     
-    // MARK: - Computed Properties
-    var name: String {
+    // Método público para actualizar manualmente el refreshID
+    func refreshView() {
+        refreshID = UUID()
+    }
+    
+    // Image loading implementation
+    func loadImage(from url: URL) async throws -> Image {
+        // Capturar el use case localmente para evitar data races
+        let useCase = self.loadImageUseCase
+        return try await useCase.execute(from: url)
+    }
+    
+    // Computed properties to access user data
+    var id: String {
+        return user.id
+    }
+    
+    var fullName: String {
         return user.fullName
     }
     
@@ -38,27 +41,34 @@ class UserDetailViewModel: UserDetailViewModelType {
         return user.phone
     }
     
-    var gender: String {
-        return user.gender
-    }
-    
     var location: String {
         return "\(user.location.street), \(user.location.city), \(user.location.state)"
     }
     
     var registeredDate: String {
-        return dateFormatter.string(from: user.registeredDate)
-    }
-    
-    var pictureURL: URL {
-        return user.picture.large
-    }
-    
-    // MARK: - Private Helper Methods
-    private static func createDefaultDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
-        return formatter
+        
+        // Usar siempre el idioma del sistema
+        formatter.locale = Locale.current
+        
+        return formatter.string(from: user.registeredDate)
+    }
+    
+    var largePictureURL: URL {
+        return user.picture.large
+    }
+    
+    var mediumPictureURL: URL {
+        return user.picture.medium
+    }
+    
+    var thumbnailPictureURL: URL {
+        return user.picture.thumbnail
+    }
+    
+    var gender: String {
+        return user.gender
     }
 } 

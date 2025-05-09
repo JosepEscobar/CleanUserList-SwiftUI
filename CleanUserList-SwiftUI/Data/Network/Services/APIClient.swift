@@ -1,33 +1,53 @@
 import Foundation
-import Combine
 
 enum APIError: Error, Equatable {
-    case invalidURL
-    case responseError
+    case networkError
     case decodingError
     case serverError(statusCode: Int)
-    case unknown
+    case responseError
+    case timeout
+    case unreachable
+    case unknown(String)
     
     static func == (lhs: APIError, rhs: APIError) -> Bool {
         switch (lhs, rhs) {
-        case (.invalidURL, .invalidURL):
+        case (.networkError, .networkError),
+             (.decodingError, .decodingError),
+             (.responseError, .responseError),
+             (.timeout, .timeout),
+             (.unreachable, .unreachable):
             return true
-        case (.responseError, .responseError):
-            return true
-        case (.decodingError, .decodingError):
-            return true
-        case let (.serverError(lhsCode), .serverError(rhsCode)):
+        case (.serverError(let lhsCode), .serverError(let rhsCode)):
             return lhsCode == rhsCode
-        case (.unknown, .unknown):
-            return true
+        case (.unknown(let lhsMessage), .unknown(let rhsMessage)):
+            return lhsMessage == rhsMessage
         default:
             return false
+        }
+    }
+    
+    var localizedDescription: String {
+        switch self {
+        case .networkError:
+            return "Error de red: comprueba tu conexión a Internet"
+        case .decodingError:
+            return "Error al decodificar los datos"
+        case .serverError(let statusCode):
+            return "Error del servidor: código \(statusCode)"
+        case .responseError:
+            return "Error en la respuesta del servidor"
+        case .timeout:
+            return "Tiempo de espera agotado para la solicitud"
+        case .unreachable:
+            return "No se puede conectar al servidor"
+        case .unknown(let message):
+            return "Error desconocido: \(message)"
         }
     }
 }
 
 protocol URLSessionProtocol {
-    func dataTaskPublisher(for url: URL) -> URLSession.DataTaskPublisher
+    func data(for request: URLRequest, delegate: URLSessionTaskDelegate?) async throws -> (Data, URLResponse)
 }
 
 extension URLSession: URLSessionProtocol {}
@@ -39,59 +59,46 @@ protocol DateFormatterProtocol {
 
 extension DateFormatter: DateFormatterProtocol {}
 
+@MainActor
 protocol APIClient {
-    func getUsers(count: Int) -> AnyPublisher<UserResponse, Error>
+    func getUsers(count: Int) async throws -> UserResponse
 }
 
+@MainActor
 class DefaultAPIClient: APIClient {
-    private let baseURL: String
-    private let session: URLSessionProtocol
-    private let decoder: JSONDecoder
+    private let decoder = JSONDecoder()
     
-    init(
-        baseURL: String = "https://api.randomuser.me",
-        session: URLSessionProtocol = URLSession.shared
-    ) {
-        self.baseURL = baseURL
-        self.session = session
-        self.decoder = JSONDecoder()
-        
-        // Configurar el decodificador de fechas
+    init() {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         
-        self.decoder.dateDecodingStrategy = .formatted(formatter)
+        decoder.dateDecodingStrategy = .formatted(formatter)
     }
     
-    func getUsers(count: Int) -> AnyPublisher<UserResponse, Error> {
-        guard let url = URL(string: "\(baseURL)/?results=\(count)") else {
-            return Fail(error: APIError.invalidURL).eraseToAnyPublisher()
+    func getUsers(count: Int) async throws -> UserResponse {
+        let urlString = "http://api.randomuser.me/?results=\(count)&nat=es"
+        guard let url = URL(string: urlString) else {
+            throw APIError.unknown("URL inválida")
         }
         
-        return session.dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw APIError.responseError
-                }
-                
-                if !(200...299).contains(httpResponse.statusCode) {
-                    throw APIError.serverError(statusCode: httpResponse.statusCode)
-                }
-                
-                return data
+        do {
+            let request = URLRequest(url: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.responseError
             }
-            .decode(type: UserResponse.self, decoder: decoder)
-            .mapError { error in
-                if let error = error as? APIError {
-                    return error
-                } else if error is DecodingError {
-                    return APIError.decodingError
-                } else {
-                    return APIError.unknown
-                }
-            }
-            .eraseToAnyPublisher()
+            
+            let userResponse = try decoder.decode(UserResponse.self, from: data)
+            return userResponse
+            
+        } catch {
+            throw error
+        }
     }
 } 
+
+

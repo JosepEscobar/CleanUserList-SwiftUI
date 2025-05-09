@@ -1,10 +1,9 @@
-import Foundation
-import Combine
-
+@MainActor
 protocol DeleteUserUseCase {
-    func execute(userID: String) -> AnyPublisher<Void, Error>
+    func execute(userID: String) async throws
 }
 
+@MainActor
 class DefaultDeleteUserUseCase: DeleteUserUseCase {
     private let repository: UserRepository
     
@@ -12,7 +11,7 @@ class DefaultDeleteUserUseCase: DeleteUserUseCase {
         self.repository = repository
     }
     
-    func execute(userID: String) -> AnyPublisher<Void, Error> {
-        return repository.deleteUser(withID: userID)
+    func execute(userID: String) async throws {
+        try await repository.deleteUser(withID: userID)
     }
 } 
