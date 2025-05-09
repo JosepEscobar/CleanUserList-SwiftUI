@@ -24,12 +24,12 @@ extension User {
 
 // Simple image cache
 actor ImageCache {
-    // Acceso global al actor
+    // Global actor access
     static let shared = ImageCache()
     
     private let cache = NSCache<NSURL, ImageContainer>()
     
-    // Clase contenedora para almacenar Image en NSCache
+    // Container class to store Image in NSCache
     class ImageContainer {
         let image: Image
         
@@ -65,7 +65,7 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
     @State private var loadingFailed = false
     private let viewModel: Any
     
-    // Constructor para usar con ViewModels
+    // Constructor to use with ViewModels
     init(url: URL?,
          viewModel: Any, // The ViewModel to load images
          @ViewBuilder content: @escaping (Image) -> Content,
@@ -98,7 +98,7 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
     private func loadImage() {
         guard let url = url, image == nil else { return }
         
-        // Try to load from cache first
+        // First try to use ViewModel if compatible
         Task {
             if let cachedImage = await ImageCache.shared.get(for: url) {
                 self.image = cachedImage
@@ -120,7 +120,7 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
                     self.image = loadedImage
                     self.isLoading = false
                 } catch {
-                    // Si falla, cargar con URLSession
+                    // If it fails, load with URLSession
                     await loadImageWithURLSession(url: url)
                 }
             } else if let userDetailVM = viewModel as? UserDetailViewModel {
@@ -133,11 +133,11 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
                     self.image = loadedImage
                     self.isLoading = false
                 } catch {
-                    // Si falla, cargar con URLSession
+                    // If it fails, load with URLSession
                     await loadImageWithURLSession(url: url)
                 }
             } else {
-                // Si no es un ViewModel compatible, usar URLSession directamente
+                // If not a compatible ViewModel, use URLSession directly
                 await loadImageWithURLSession(url: url)
             }
         }
@@ -145,12 +145,12 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
     
     private func loadImageWithURLSession(url: URL) async {
         do {
-            // Crear URLRequest optimizado
+            // Create optimized URLRequest
             var request = URLRequest(url: url)
             request.cachePolicy = .returnCacheDataElseLoad
             request.httpMethod = "GET"
             
-            // Optimizar la solicitud HTTP
+            // Optimize HTTP request
             request.setValue("HTTP/1.1", forHTTPHeaderField: "X-Protocol-Version")
             request.setValue("close", forHTTPHeaderField: "Connection")
             
@@ -165,14 +165,14 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
             
             let session = URLSession(configuration: config)
             
-            // Ejecutar la solicitud de forma asíncrona
+            // Execute request asynchronously
             let (data, _) = try await session.data(for: request)
             
-            // Crear imagen de SwiftUI asíncronamente
+            // Create SwiftUI image asynchronously
             if let uiImage = createCGImage(from: data) {
                 let swiftUIImage = Image(decorative: uiImage, scale: 1.0)
                 
-                // Guardar en caché
+                // Save to cache
                 await ImageCache.shared.set(swiftUIImage, for: url)
                 
                 self.image = swiftUIImage
@@ -187,7 +187,7 @@ struct UserAsyncImageView<Content: View, Placeholder: View>: View {
         }
     }
     
-    // Función auxiliar para crear CGImage desde Data
+    // Helper function to create CGImage from Data
     private func createCGImage(from data: Data) -> CGImage? {
         if let provider = CGDataProvider(data: data as CFData),
            let cgImage = CGImage(

@@ -12,14 +12,14 @@ final class UserDetailViewModel: ObservableObject {
         self.loadImageUseCase = loadImageUseCase
     }
     
-    // Método público para actualizar manualmente el refreshID
+    // Public method to manually update refreshID
     func refreshView() {
         refreshID = UUID()
     }
     
     // Image loading implementation
     func loadImage(from url: URL) async throws -> Image {
-        // Capturar el use case localmente para evitar data races
+        // Capture use case locally to avoid data races
         let useCase = self.loadImageUseCase
         return try await useCase.execute(from: url)
     }
@@ -50,7 +50,7 @@ final class UserDetailViewModel: ObservableObject {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         
-        // Usar siempre el idioma del sistema
+        // Always use system language
         formatter.locale = Locale.current
         
         return formatter.string(from: user.registeredDate)

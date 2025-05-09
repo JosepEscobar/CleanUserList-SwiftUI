@@ -30,15 +30,37 @@ struct UserListView: View {
     }
     
     private var searchBar: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.gray)
+                .font(.system(size: 16, weight: .medium))
             
             TextField("search_users".localized, text: $viewModel.searchText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(PlainTextFieldStyle())
                 .disableAutocorrection(true)
+                .font(.system(size: 16))
+            
+            if !viewModel.searchText.isEmpty {
+                Button(action: {
+                    viewModel.searchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 16))
+                }
+                .transition(.opacity)
+                .animation(.easeInOut, value: viewModel.searchText)
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemGray6))
+                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        )
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     private var loadingView: some View {
@@ -132,7 +154,7 @@ struct UserListView: View {
             
             if !viewModel.users.isEmpty {
                 Button(action: {
-                    // Mostrar solo los usuarios guardados
+                    // Show only saved users
                     viewModel.errorMessage = nil
                 }) {
                     LocalizedText("continue_with_saved_users", arguments: viewModel.users.count)
@@ -149,14 +171,14 @@ struct UserListView: View {
     
     private var userList: some View {
         List {
-            // Mostrar los usuarios
+            // Show users
             ForEach(viewModel.filteredUsers) { user in
                 NavigationLink(destination: 
                     UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))
                 ) {
                     UserRowView(
                         user: user, 
-                        onDelete: { _ in }, // No se usa con swipe
+                        onDelete: { _ in }, // Not used with swipe
                         viewModel: viewModel
                     )
                 }
@@ -169,20 +191,20 @@ struct UserListView: View {
                         Label("delete".localized, systemImage: "trash")
                     }
                 }
-                // Detector al llegar cerca del final de la lista
+                // Detector when reaching near the end of the list
                 .onAppear {
-                    // Si este es uno de los últimos elementos, cargar más
+                    // If this is one of the last elements, load more
                     let userIndex = viewModel.filteredUsers.firstIndex(where: { $0.id == user.id }) ?? 0
                     let threshold = max(0, viewModel.filteredUsers.count - 5)
                     
-                    // Detectar si estamos cerca del final
+                    // Detect if we're near the end
                     if userIndex >= threshold && viewModel.searchText.isEmpty && !viewModel.isLoadingMoreUsers {
                         viewModel.loadMoreUsers(count: 40) // Load 40 users as indicated by the API
                     }
                 }
             }
             
-            // Indicador de carga al final
+            // Loading indicator at the end
             if viewModel.isLoading && !viewModel.filteredUsers.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity)
@@ -192,7 +214,7 @@ struct UserListView: View {
         }
         .listStyle(PlainListStyle())
         .refreshable {
-            // Pull to refresh - reiniciar y cargar usuarios nuevos
+            // Pull to refresh - reset and load new users
             viewModel.loadMoreUsers(count: 40) // Load 40 users as indicated by the API
         }
     }
