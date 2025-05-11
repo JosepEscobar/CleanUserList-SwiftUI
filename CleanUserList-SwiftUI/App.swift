@@ -27,7 +27,8 @@ struct CleanUserList_SwiftUIApp: App {
             UserListView(viewModel: makeViewModel())
                 .accentColor(Color(UIColor.systemGray))
         }
-        .modelContainer(for: [UserEntity.self], inMemory: false)
+        // Configuración básica de modelContainer
+        .modelContainer(for: [UserEntity.self])
     }
     
     // Method marked with @MainActor to initialize the ViewModel
@@ -55,7 +56,7 @@ class DependencyContainer {
     
     // API
     private lazy var apiClient: APIClient = {
-        return DefaultAPIClient()
+        return DefaultAPIClient(session: configuredSession)
     }()
     
     // Storage - Using only SwiftData

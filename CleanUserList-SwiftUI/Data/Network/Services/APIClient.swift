@@ -73,8 +73,13 @@ class DefaultAPIClient: APIClient {
     }
     
     private let decoder = JSONDecoder()
+    private let session: URLSession
+    private var lastFetchTime: Date?
+    private let minimumFetchInterval: TimeInterval = 2.0 // 2 segundos mínimo entre peticiones
     
-    init() {
+    init(session: URLSession = NetworkConfiguration.configureURLSession()) {
+        self.session = session
+        
         let formatter = DateFormatter()
         formatter.dateFormat = Constants.dateFormat
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
@@ -84,14 +89,29 @@ class DefaultAPIClient: APIClient {
     }
     
     func getUsers(count: Int) async throws -> UserResponse {
-        let urlString = "\(Constants.baseURL)/?results=\(count)&nat=es"
+        // Verificar si necesitamos esperar para evitar múltiples solicitudes rápidas
+        if let lastFetch = lastFetchTime, 
+           Date().timeIntervalSince(lastFetch) < minimumFetchInterval {
+            // Esperar un poco para evitar problemas de red
+            try await Task.sleep(nanoseconds: UInt64(minimumFetchInterval * 1_000_000_000))
+        }
+        
+        // Garantizar que cada solicitud use un seed único basado en timestamp
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let urlString = "\(Constants.baseURL)/?results=\(count)&nat=es&seed=\(timestamp)"
         guard let url = URL(string: urlString) else {
             throw APIError.unknown("URL inválida")
         }
         
         do {
-            let request = URLRequest(url: url)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            var request = URLRequest(url: url)
+            // Ajustar política de caché para evitar problemas con el simulador
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            
+            let (data, response) = try await session.data(for: request, delegate: nil)
+            
+            // Actualizar timestamp de última petición
+            self.lastFetchTime = Date()
             
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
@@ -101,8 +121,22 @@ class DefaultAPIClient: APIClient {
             let userResponse = try decoder.decode(UserResponse.self, from: data)
             return userResponse
             
+        } catch let error as DecodingError {
+            print("Error de decodificación: \(error)")
+            throw APIError.decodingError
+        } catch let urlError as URLError {
+            print("Error de URL: \(urlError)")
+            switch urlError.code {
+            case .timedOut:
+                throw APIError.timeout
+            case .notConnectedToInternet, .networkConnectionLost:
+                throw APIError.networkError
+            default:
+                throw APIError.unknown(urlError.localizedDescription)
+            }
         } catch {
-            throw error
+            print("Error desconocido: \(error)")
+            throw APIError.unknown(error.localizedDescription)
         }
     }
 } 
