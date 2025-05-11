@@ -13,8 +13,8 @@ struct UserListView: View {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 12
         static let topPadding: CGFloat = 8
-        static let loadMoreThreshold: Int = 5
-        static let defaultLoadCount: Int = 40
+        static let loadMoreThreshold: Int = 3
+        static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
     }
     
@@ -36,11 +36,6 @@ struct UserListView: View {
         }
         .onAppear {
             viewModel.loadSavedUsers()
-        }
-        .onChange(of: viewModel.users.count) { oldCount, newCount in
-            if newCount > Constants.loadMoreThreshold {
-                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
-            }
         }
     }
     
@@ -99,37 +94,50 @@ struct UserListView: View {
     }
     
     private var userList: some View {
-        ScrollView {
-            LazyVStack(spacing: Constants.verticalPadding) {
-                ForEach(viewModel.filteredUsers) { user in
-                    userRow(for: user)
+        List {
+            ForEach(viewModel.filteredUsers) { user in
+                NavigationLink(destination: UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))) {
+                    UserRowView(
+                        user: user,
+                        onDelete: { _ in
+                            // Este callback ya no es necesario ya que usamos swipe-to-delete
+                        },
+                        viewModel: viewModel
+                    )
+                    .padding(.vertical, 4)
                 }
-                
-                if viewModel.isLoadingMoreUsers {
-                    ProgressView()
-                        .padding()
+                .listRowInsets(EdgeInsets(
+                    top: 8, 
+                    leading: Constants.horizontalPadding, 
+                    bottom: 8, 
+                    trailing: Constants.horizontalPadding
+                ))
+                .onAppear {
+                    // Cargar más usuarios cuando el usuario llega a uno de los últimos elementos
+                    if user.id == viewModel.filteredUsers.suffix(Constants.loadMoreThreshold).first?.id {
+                        viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    }
                 }
             }
-            .padding(.horizontal, Constants.horizontalPadding)
-            .padding(.top, Constants.topPadding)
+            .onDelete { indexSet in
+                for index in indexSet {
+                    let user = viewModel.filteredUsers[index]
+                    viewModel.deleteUser(withID: user.id)
+                }
+            }
+            
+            if viewModel.isLoadingMoreUsers {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+                    .padding()
+            }
         }
+        .listStyle(.plain)
         .refreshable {
             isRefreshing = true
             viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
             isRefreshing = false
         }
-    }
-    
-    private func userRow(for user: User) -> some View {
-        NavigationLink(destination: UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))) {
-            UserRowView(
-                user: user,
-                onDelete: { _ in
-                    viewModel.deleteUser(withID: user.id)
-                },
-                viewModel: viewModel
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 } 
