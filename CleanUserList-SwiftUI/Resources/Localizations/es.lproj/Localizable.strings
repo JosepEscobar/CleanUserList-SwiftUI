@@ -5,7 +5,7 @@
 "no_users_available" = "No hay usuarios disponibles";
 "try_loading_users" = "Intenta cargar usuarios desde la API";
 "no_results_found" = "No se encontraron resultados";
-"try_another_search" = "Intenta con otra búsqueda";
+"try_another_search" = "Intenta otra búsqueda";
 "load_users" = "Cargar usuarios";
 "clear_search" = "Limpiar búsqueda";
 "connection_problem" = "Parece que hay un problema con la conexión a Internet. Verifica tu conexión e intenta de nuevo.";
@@ -14,13 +14,16 @@
 "delete" = "Eliminar";
 
 // MARK: - UserDetailView
-"user_details" = "Detalle del usuario";
+"user_details" = "Detalles del Usuario";
 "name" = "Nombre";
-"email" = "Email";
+"email" = "Correo";
 "phone" = "Teléfono";
 "gender" = "Género";
 "address" = "Dirección";
-"registration_date" = "Fecha de registro";
+"registration_date" = "Fecha de Registro";
 
 // MARK: - Language Selector
-"select_language" = "Seleccionar idioma"; 
+"select_language" = "Seleccionar idioma";
+
+// MARK: - Image Loading
+"error_loading_image" = "Error al cargar imagen"; 

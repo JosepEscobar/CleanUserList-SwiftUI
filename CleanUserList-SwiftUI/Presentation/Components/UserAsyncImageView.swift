@@ -38,24 +38,26 @@ struct UserAsyncImageView: View {
         static let imageFadeDuration: TimeInterval = 0.25
         static let imageReferenceWidth: CGFloat = 300
         static let imageReferenceHeight: CGFloat = 300
+        static let bytesInMB: Int = 1024 * 1024
+        static let errorLoadingImage = "error_loading_image"
     }
     
     let url: URL
     
-    // Esta función se ejecuta una vez cuando se inicializa la aplicación
+    // This function is executed once when the application initializes
     static func configureKingfisher() {
-        // Configuración global de Kingfisher
+        // Global Kingfisher configuration
         KingfisherManager.shared.defaultOptions = [
             .scaleFactor(UIScreen.main.scale),
             .transition(.fade(Constants.transitionDuration)),
             .cacheOriginalImage
         ]
         
-        // Configurar límites de caché
-        ImageCache.default.memoryStorage.config.totalCostLimit = Constants.cacheSizeInMB * 1024 * 1024
-        ImageCache.default.diskStorage.config.sizeLimit = UInt(Constants.maxDiskCacheSize * 1024 * 1024)
+        // Configure cache limits
+        ImageCache.default.memoryStorage.config.totalCostLimit = Constants.cacheSizeInMB * Constants.bytesInMB
+        ImageCache.default.diskStorage.config.sizeLimit = UInt(Constants.maxDiskCacheSize * Constants.bytesInMB)
         
-        // Configurar tiempos de expiración
+        // Configure expiration times
         ImageCache.default.memoryStorage.config.expiration = .seconds(Constants.memoryCacheExpiration)
         ImageCache.default.diskStorage.config.expiration = .seconds(Constants.diskCacheExpiration)
     }
@@ -66,11 +68,11 @@ struct UserAsyncImageView: View {
             .cacheMemoryOnly(false)
             .fade(duration: Constants.imageFadeDuration)
             .onSuccess { _ in
-                // Imagen cargada exitosamente
+                // Image loaded successfully
             }
             .onFailure { error in
-                // Error al cargar la imagen
-                print("Error cargando imagen: \(error.localizedDescription)")
+                // Error loading image
+                print("\(Constants.errorLoadingImage.localized): \(error.localizedDescription)")
             }
             .placeholder {
                 ProgressView()
