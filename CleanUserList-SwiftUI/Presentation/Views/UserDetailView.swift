@@ -20,10 +20,12 @@ struct UserDetailView: View {
         static let cardSpacing: CGFloat = 24
         static let cardContentSpacing: CGFloat = 20
         static let cardPadding: CGFloat = 20
-        static let blueOpacity: Double = 0.2
+        static let strokeOpacity: Double = 0.3
+        static let iconColor = Color(UIColor.systemGray)
     }
     
     @ObservedObject var viewModel: UserDetailViewModel
+    @State private var isViewAppeared = false
     
     var body: some View {
         ScrollView {
@@ -34,7 +36,7 @@ struct UserDetailView: View {
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .stroke(Color.blue.opacity(Constants.blueOpacity), lineWidth: Constants.profileImageStrokeWidth)
+                            .stroke(Constants.iconColor.opacity(Constants.strokeOpacity), lineWidth: Constants.profileImageStrokeWidth)
                     )
                     .shadow(color: Color.black.opacity(Constants.shadowOpacity), radius: Constants.profileImageShadowRadius)
                     .padding(.top, Constants.profileImageTopPadding)
@@ -56,13 +58,16 @@ struct UserDetailView: View {
                 .padding(Constants.cardPadding)
                 .background(
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .fill(Color(UIColor.systemBackground))
+                        .fill(Color.white)
                         .shadow(color: Color.black.opacity(Constants.shadowOpacity), 
                                radius: Constants.shadowRadius, 
                                x: 0, 
                                y: Constants.shadowOffsetY)
                 )
                 .padding(.horizontal, Constants.horizontalPadding)
+                .opacity(isViewAppeared ? 1 : 0)
+                .offset(y: isViewAppeared ? 0 : 50)
+                .animation(.spring(response: 0.5), value: isViewAppeared)
                 
                 Spacer(minLength: Constants.minSpacing)
             }
@@ -70,8 +75,17 @@ struct UserDetailView: View {
         }
         .navigationTitle("user_details".localized)
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .id(viewModel.refreshID)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isViewAppeared = true
+            }
+        }
+        .transition(.asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        ))
     }
     
     private func detailRow(icon: String, key: String, value: String) -> some View {
@@ -81,7 +95,7 @@ struct UserDetailView: View {
                 .font(.system(size: Constants.iconSize, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: Constants.iconCircleSize, height: Constants.iconCircleSize)
-                .background(Circle().fill(Color.blue))
+                .background(Circle().fill(Constants.iconColor))
             
             VStack(alignment: .leading, spacing: Constants.textSpacing) {
                 LocalizedText(key)

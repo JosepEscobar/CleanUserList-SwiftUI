@@ -10,6 +10,7 @@ struct SearchBarView: View {
         static let iconSize: CGFloat = 16
         static let backgroundColor = Color.white
         static let placeholderColor = Color(UIColor.placeholderText)
+        static let accentColor = Color(UIColor.systemGray)
         static let shadowRadius: CGFloat = 5
         static let shadowOpacity: Double = 0.1
         static let shadowOffsetY: CGFloat = 2
@@ -22,7 +23,7 @@ struct SearchBarView: View {
     var body: some View {
         HStack(spacing: Constants.horizontalPadding / 2) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(searchText.isEmpty ? Constants.placeholderColor : .accentColor)
+                .foregroundColor(searchText.isEmpty ? Constants.placeholderColor : Constants.accentColor)
                 .font(.system(size: Constants.iconSize, weight: .medium))
             
             TextField("search_users".localized, text: $searchText)
@@ -59,7 +60,7 @@ struct SearchBarView: View {
                         y: Constants.shadowOffsetY)
                 .overlay(
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .stroke(isFocused || !searchText.isEmpty ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                        .stroke(isFocused || !searchText.isEmpty ? Constants.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
                 )
         )
         .padding(.horizontal)

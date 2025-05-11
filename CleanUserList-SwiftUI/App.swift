@@ -16,12 +16,16 @@ struct CleanUserList_SwiftUIApp: App {
     init() {
         // Configurar Kingfisher al iniciar la aplicación
         UserAsyncImageView.configureKingfisher()
+        
+        // Configurar el color de acento global
+        UINavigationBar.appearance().tintColor = UIColor.systemGray
     }
     
     var body: some Scene {
         WindowGroup {
             // Vista principal sin LocalizedView envolvente
             UserListView(viewModel: makeViewModel())
+                .accentColor(Color(UIColor.systemGray))
         }
         .modelContainer(for: [UserEntity.self], inMemory: false)
     }
