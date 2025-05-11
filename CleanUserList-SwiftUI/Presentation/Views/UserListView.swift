@@ -16,6 +16,7 @@ struct UserListView: View {
         static let loadMoreThreshold: Int = 3
         static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
+        static let listTopPadding: CGFloat = 16
     }
     
     init(viewModel: UserListViewModel) {
@@ -25,7 +26,7 @@ struct UserListView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemGroupedBackground)
+                Color.white
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -134,6 +135,8 @@ struct UserListView: View {
             }
         }
         .listStyle(.plain)
+        .padding(.top, Constants.listTopPadding)
+        .background(Color.white)
         .refreshable {
             isRefreshing = true
             viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
