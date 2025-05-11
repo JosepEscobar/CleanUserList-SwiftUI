@@ -11,7 +11,6 @@ struct NetworkConfiguration {
         enum Headers {
             static let accept = "application/json"
             static let contentType = "application/json"
-            static let userAgent = "CleanUserList-SwiftUI/1.0"
         }
     }
     
@@ -25,12 +24,11 @@ struct NetworkConfiguration {
         configuration.timeoutIntervalForResource = Constants.timeoutIntervalForResource
         configuration.allowsCellularAccess = true
         configuration.httpMaximumConnectionsPerHost = Constants.maxConnectionsPerHost
-        configuration.waitsForConnectivity = true
+        configuration.waitsForConnectivity = false
         configuration.urlCache = cache
         configuration.httpAdditionalHeaders = [
             "Accept": Constants.Headers.accept,
             "Content-Type": Constants.Headers.contentType,
-            "User-Agent": Constants.Headers.userAgent
         ]
         
         return URLSession(configuration: configuration)

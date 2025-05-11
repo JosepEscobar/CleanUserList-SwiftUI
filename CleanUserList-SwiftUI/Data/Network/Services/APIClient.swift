@@ -74,8 +74,6 @@ class DefaultAPIClient: APIClient {
     
     private let decoder = JSONDecoder()
     private let session: URLSession
-    private var lastFetchTime: Date?
-    private let minimumFetchInterval: TimeInterval = 2.0 // 2 segundos mínimo entre peticiones
     
     init(session: URLSession = NetworkConfiguration.configureURLSession()) {
         self.session = session
@@ -89,16 +87,8 @@ class DefaultAPIClient: APIClient {
     }
     
     func getUsers(count: Int) async throws -> UserResponse {
-        // Verificar si necesitamos esperar para evitar múltiples solicitudes rápidas
-        if let lastFetch = lastFetchTime, 
-           Date().timeIntervalSince(lastFetch) < minimumFetchInterval {
-            // Esperar un poco para evitar problemas de red
-            try await Task.sleep(nanoseconds: UInt64(minimumFetchInterval * 1_000_000_000))
-        }
-        
         // Garantizar que cada solicitud use un seed único basado en timestamp
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let urlString = "\(Constants.baseURL)/?results=\(count)&nat=es&seed=\(timestamp)"
+        let urlString = "\(Constants.baseURL)/?results=\(count)"
         guard let url = URL(string: urlString) else {
             throw APIError.unknown("URL inválida")
         }
@@ -109,9 +99,6 @@ class DefaultAPIClient: APIClient {
             request.cachePolicy = .reloadIgnoringLocalCacheData
             
             let (data, response) = try await session.data(for: request, delegate: nil)
-            
-            // Actualizar timestamp de última petición
-            self.lastFetchTime = Date()
             
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
