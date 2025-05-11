@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48CE55D22DD0B98F005689E7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 48CE55D12DD0B98F005689E7 /* Kingfisher */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		48E835332DCD30C20023E3E0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48CE55D22DD0B98F005689E7 /* Kingfisher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = "CleanUserList-SwiftUI";
 			packageProductDependencies = (
+				48CE55D12DD0B98F005689E7 /* Kingfisher */,
 			);
 			productName = "CleanUserList-SwiftUI";
 			productReference = 48E835242DCD30C10023E3E0 /* CleanUserList-SwiftUI.app */;
@@ -210,6 +216,9 @@
 			);
 			mainGroup = 48E8351B2DCD30C10023E3E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 48E835252DCD30C10023E3E0 /* Products */;
 			projectDirPath = "";
@@ -612,6 +621,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.3.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48CE55D12DD0B98F005689E7 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 48E8351C2DCD30C10023E3E0 /* Project object */;
 }

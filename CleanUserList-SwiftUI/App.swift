@@ -7,10 +7,16 @@
 
 import SwiftUI
 import SwiftData
+import Kingfisher
 
 @main
 struct CleanUserList_SwiftUIApp: App {
     let dependencyContainer = DependencyContainer()
+    
+    init() {
+        // Configurar Kingfisher al iniciar la aplicación
+        UserAsyncImageView.configureKingfisher()
+    }
     
     var body: some Scene {
         WindowGroup {
