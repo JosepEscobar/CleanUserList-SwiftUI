@@ -33,7 +33,7 @@ struct NetworkConfiguration {
             "Alt-Svc": ""
         ]
         
-        // Forzar el uso de HTTP/1.1 mediante nuestro URLProtocol personalizado
+        // Force the use of HTTP/1.1 using our custom URLProtocol
         configuration.protocolClasses = [ForceHTTP11URLProtocol.self]
         
         return URLSession(configuration: configuration)

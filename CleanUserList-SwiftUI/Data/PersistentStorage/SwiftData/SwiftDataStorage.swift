@@ -9,14 +9,14 @@ class SwiftDataStorage: UserStorage {
     init() throws {
         let schema = Schema([UserEntity.self])
         
-        // Configuración básica para SwiftData
+        // Basic configuration for SwiftData
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true
         )
         
-        // Crear contenedor con la configuración básica
+        // Create container with basic configuration
         self.modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
     
@@ -24,24 +24,24 @@ class SwiftDataStorage: UserStorage {
         var retryCount = 0
         var lastError: Error? = nil
         
-        // Intentar guardar con reintentos si hay errores transaccionales
+        // Try to save with retries if there are transactional errors
         while retryCount < maxTransactionRetries {
             do {
                 try await performSaveUsers(users)
-                return // Si tiene éxito, salimos de la función
+                return // If successful, exit the function
             } catch {
-                print("Error al guardar usuarios (intento \(retryCount + 1)): \(error)")
+                print("Error saving users (attempt \(retryCount + 1)): \(error)")
                 lastError = error
                 retryCount += 1
                 
                 if retryCount < maxTransactionRetries {
-                    // Esperar un poco antes de reintentar
-                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5 segundos
+                    // Wait a bit before retrying
+                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                 }
             }
         }
         
-        // Si llegamos aquí, todos los intentos fallaron
+        // If we get here, all attempts failed
         if let error = lastError {
             throw error
         } else {
@@ -50,13 +50,13 @@ class SwiftDataStorage: UserStorage {
     }
     
     private func performSaveUsers(_ users: [User]) async throws {
-        // Usar el contexto de transacción directamente
+        // Use the transaction context directly
         let transactionContext = ModelContext(modelContainer)
         transactionContext.autosaveEnabled = false
         
         let userEntities = users.map { UserEntity.fromDomain(user: $0) }
         
-        // Fetch existente con el nuevo contexto
+        // Fetch existing with the new context
         let descriptor = FetchDescriptor<UserEntity>()
         let existingUsers = try transactionContext.fetch(descriptor)
         let existingIDs = Set(existingUsers.map { $0.id })
@@ -71,7 +71,7 @@ class SwiftDataStorage: UserStorage {
         }
         
         if insertCount > 0 {
-            // Guardar explícitamente el contexto de transacción
+            // Explicitly save the transaction context
             try transactionContext.save()
         }
     }
@@ -80,7 +80,7 @@ class SwiftDataStorage: UserStorage {
         let modelContext = modelContainer.mainContext
         var descriptor = FetchDescriptor<UserEntity>()
         
-        // Añadir ordenación para consistencia
+        // Add sorting for consistency
         descriptor.sortBy = [SortDescriptor(\.registeredDate, order: .forward)]
         
         let userEntities = try modelContext.fetch(descriptor)

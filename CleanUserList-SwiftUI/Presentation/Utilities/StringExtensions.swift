@@ -11,7 +11,7 @@ extension String {
     }
 }
 
-// Vista que muestra texto localizado que se actualiza cuando cambia el idioma
+// View that displays localized text that updates when the language changes
 struct LocalizedText: View {
     let key: String
     let arguments: [CVarArg]
@@ -26,7 +26,7 @@ struct LocalizedText: View {
     }
 }
 
-// Vista de contenedor simple
+// Simple container view
 struct LocalizedView<Content: View>: View {
     private let content: Content
     

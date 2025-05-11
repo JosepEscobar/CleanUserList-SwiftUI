@@ -18,35 +18,35 @@ class DefaultUserRepository: UserRepository {
         self.lastRequestedCount = count
         
         do {
-            // Si es la primera carga y hay más de 20 usuarios solicitados, cargamos directamente de la API
+            // If it's the first load and more than 20 users are requested, load directly from the API
             if isFirstLoad && count >= 20 {
                 isFirstLoad = false
-                // Intentar cargar directamente de la API para mayor velocidad inicial
+                // Try to load directly from the API for faster initial response
                 return try await fetchAndStoreMoreUsers(count: count)
             }
             
-            // En cargas normales, primero verificamos si tenemos usuarios guardados
+            // For normal loads, first check if we have saved users
             let savedUsers = try await getSavedUsers()
             
-            // Si hay usuarios guardados y son suficientes, los devolvemos inmediatamente
-            // y actualizamos en segundo plano
+            // If there are saved users and they are enough, return them immediately
+            // and update in the background
             if !savedUsers.isEmpty && savedUsers.count >= count / 2 {
-                // Actualizar en segundo plano solo si no es la primera carga
+                // Update in the background only if it's not the first load
                 Task {
                     do {
                         _ = try await fetchAndStoreMoreUsers(count: count)
                     } catch {
-                        print("Error actualizando usuarios en segundo plano: \(error)")
+                        print("Error updating users in the background: \(error)")
                     }
                 }
                 return savedUsers
             }
             
-            // Si no hay suficientes usuarios o es necesario cargar más
+            // If there are not enough users or we need to load more
             isFirstLoad = false
             return try await fetchAndStoreMoreUsers(count: count)
         } catch {
-            // Si hay algún error pero tenemos usuarios guardados, los devolvemos
+            // If there's an error but we have saved users, return them
             let savedUsers = try? await getSavedUsers()
             if let users = savedUsers, !users.isEmpty {
                 return users
@@ -57,30 +57,30 @@ class DefaultUserRepository: UserRepository {
     
     private func fetchAndStoreMoreUsers(count: Int) async throws -> [User] {
         do {
-            // Cargar con tiempo de timeout reducido en la primera carga para mayor reactividad
+            // Load with reduced timeout for the first load for better reactivity
             let response = try await apiClient.getUsersWithRetry(count: count)
             let newUsers = response.results.map { $0.toDomain() }
             
-            // Guardar usuarios en una tarea separada para no bloquear la UI
+            // Save users in a separate task to avoid blocking the UI
             if !newUsers.isEmpty {
                 Task {
                     do {
                         try await saveUsers(newUsers)
                     } catch {
-                        print("Error guardando usuarios: \(error)")
+                        print("Error saving users: \(error)")
                     }
                 }
             }
             
-            retryCount = 0 // Resetear el contador de reintentos
+            retryCount = 0 // Reset the retry counter
             return newUsers
         } catch let apiError as APIError {
-            // Reintentar en caso de errores de red
+            // Retry in case of network errors
             if case .networkError = apiError, retryCount < maxRetries {
                 retryCount += 1
-                // Esperar menos tiempo en el primer reintento para mayor reactividad
+                // Wait less time on the first retry for better reactivity
                 let waitTime = isFirstLoad ? 
-                    UInt64(1_000_000_000) : // 1 segundo si es primera carga
+                    UInt64(1_000_000_000) : // 1 second if it's the first load
                     UInt64(pow(2.0, Double(retryCount)) * 1_000_000_000)
                     
                 try await Task.sleep(nanoseconds: waitTime)

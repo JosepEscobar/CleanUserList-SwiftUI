@@ -14,23 +14,23 @@ struct CleanUserList_SwiftUIApp: App {
     let dependencyContainer = DependencyContainer()
     
     init() {
-        // Inicializar el NetworkChecker para garantizar que se inicie la monitorización de red
+        // Initialize the NetworkChecker to ensure network monitoring starts
         _ = NetworkChecker.shared
         
-        // Configurar Kingfisher al iniciar la aplicación
+        // Configure Kingfisher when the application starts
         UserAsyncImageView.configureKingfisher()
         
-        // Configurar el color de acento global
+        // Configure the global accent color
         UINavigationBar.appearance().tintColor = UIColor.systemGray
     }
     
     var body: some Scene {
         WindowGroup {
-            // Vista principal sin LocalizedView envolvente
+            // Main view without a LocalizedView wrapper
             UserListView(viewModel: makeViewModel())
                 .accentColor(Color(UIColor.systemGray))
         }
-        // Configuración básica de modelContainer
+        // Basic modelContainer configuration
         .modelContainer(for: [UserEntity.self])
     }
     

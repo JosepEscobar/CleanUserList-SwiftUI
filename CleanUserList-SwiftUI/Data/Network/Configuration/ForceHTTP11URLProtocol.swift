@@ -1,9 +1,8 @@
 import Foundation
 
-@MainActor
 final class ForceHTTP11URLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool {
-        // Interceptamos solo una vez para evitar bucles infinitos
+        // We intercept only once to avoid infinite loops
         return URLProtocol.property(forKey: "HandledByForceHTTP11URLProtocol", in: request) == nil
     }
 
@@ -12,7 +11,7 @@ final class ForceHTTP11URLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
-        // Marcar como interceptado para no interceptar recursivamente
+        // Mark as intercepted to avoid recursive interception
         guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
             return
         }
@@ -20,10 +19,10 @@ final class ForceHTTP11URLProtocol: URLProtocol, @unchecked Sendable {
         URLProtocol.setProperty(true, forKey: "HandledByForceHTTP11URLProtocol", in: mutableRequest)
         let newRequest = mutableRequest as URLRequest
 
-        // Crear una sesión con HTTP/1.1 forzado
+        // Create a session with forced HTTP/1.1
         let config = URLSessionConfiguration.ephemeral
-        config.httpAdditionalHeaders = ["Alt-Svc": ""] // Reforzar que no se usen servicios alternativos
-        config.protocolClasses = [] // Eliminar este protocolo para evitar loops
+        config.httpAdditionalHeaders = ["Alt-Svc": ""] // Reinforce that no alternative services are used
+        config.protocolClasses = [] // Remove this protocol to avoid loops
 
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         session.dataTask(with: newRequest) { [weak self] data, response, error in

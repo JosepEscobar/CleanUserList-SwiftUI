@@ -1,86 +1,31 @@
 import Foundation
 import Network
 
-enum APIError: Error, Equatable {
-    case networkError
-    case decodingError
-    case serverError(statusCode: Int)
-    case responseError
-    case timeout
-    case unreachable
-    case unknown(String)
-    
-    static func == (lhs: APIError, rhs: APIError) -> Bool {
-        switch (lhs, rhs) {
-        case (.networkError, .networkError),
-             (.decodingError, .decodingError),
-             (.responseError, .responseError),
-             (.timeout, .timeout),
-             (.unreachable, .unreachable):
-            return true
-        case (.serverError(let lhsCode), .serverError(let rhsCode)):
-            return lhsCode == rhsCode
-        case (.unknown(let lhsMessage), .unknown(let rhsMessage)):
-            return lhsMessage == rhsMessage
-        default:
-            return false
-        }
-    }
-    
-    var localizedDescription: String {
-        switch self {
-        case .networkError:
-            return "Error de red: comprueba tu conexión a Internet"
-        case .decodingError:
-            return "Error al decodificar los datos"
-        case .serverError(let statusCode):
-            return "Error del servidor: código \(statusCode)"
-        case .responseError:
-            return "Error en la respuesta del servidor"
-        case .timeout:
-            return "Tiempo de espera agotado para la solicitud"
-        case .unreachable:
-            return "No se puede conectar al servidor"
-        case .unknown(let message):
-            return "Error desconocido: \(message)"
-        }
-    }
-}
-
-protocol URLSessionProtocol {
-    func data(for request: URLRequest, delegate: URLSessionTaskDelegate?) async throws -> (Data, URLResponse)
-}
-
-extension URLSession: URLSessionProtocol {}
-
-protocol DateFormatterProtocol {
-    func string(from date: Date) -> String
-    func date(from string: String) -> Date?
-}
-
-extension DateFormatter: DateFormatterProtocol {}
+// No necesitamos importar estos tipos ya que están en el mismo módulo
+// import struct CleanUserList_SwiftUI.APIEndpoint
+// import enum CleanUserList_SwiftUI.APIEndpoints
 
 @MainActor
 protocol APIClient {
     func getUsers(count: Int) async throws -> UserResponse
-    func getUsersWithRetry(count: Int, retries: Int, delay: TimeInterval) async throws -> UserResponse
     func getUsersWithRetry(count: Int) async throws -> UserResponse
+    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
 }
 
 @MainActor
 class DefaultAPIClient: APIClient {
     private enum Constants {
-        static let baseURL = "https://api.randomuser.me"
         static let dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         static let locale = "en_US_POSIX"
     }
     
-    private let decoder = JSONDecoder()
+    private let decoder: JSONDecoder
     private let session: URLSession
     
     init(session: URLSession = NetworkConfiguration.configureURLSession()) {
         self.session = session
         
+        self.decoder = JSONDecoder()
         let formatter = DateFormatter()
         formatter.dateFormat = Constants.dateFormat
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
@@ -89,38 +34,40 @@ class DefaultAPIClient: APIClient {
         decoder.dateDecodingStrategy = .formatted(formatter)
     }
     
-    func getUsers(count: Int) async throws -> UserResponse {
-        // Verificar la conectividad antes de realizar la solicitud
+    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+        // Check connectivity before making the request
         guard NetworkChecker.shared.isConnected else {
             throw APIError.unreachable
         }
         
-        // Garantizar que cada solicitud use un seed único basado en timestamp
-        let urlString = "\(Constants.baseURL)/?results=\(count)"
-        guard let url = URL(string: urlString) else {
-            throw APIError.unknown("URL inválida")
-        }
-        
         do {
-            var request = URLRequest(url: url)
-            // Ajustar política de caché para evitar problemas con el simulador
+            var request = try endpoint.urlRequest()
+            // Adjust cache policy to avoid simulator issues
             request.cachePolicy = .reloadIgnoringLocalCacheData
             
             let (data, response) = try await session.data(for: request, delegate: nil)
             
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
+            guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.responseError
             }
             
-            let userResponse = try decoder.decode(UserResponse.self, from: data)
-            return userResponse
+            // Handle HTTP status codes
+            switch httpResponse.statusCode {
+            case 200...299:
+                return try decoder.decode(T.self, from: data)
+            case 400...499:
+                throw APIError.serverError(statusCode: httpResponse.statusCode)
+            case 500...599:
+                throw APIError.serverError(statusCode: httpResponse.statusCode)
+            default:
+                throw APIError.responseError
+            }
             
         } catch let error as DecodingError {
-            print("Error de decodificación: \(error)")
+            print("Decoding error: \(error)")
             throw APIError.decodingError
         } catch let urlError as URLError {
-            print("Error de URL: \(urlError)")
+            print("URL error: \(urlError)")
             switch urlError.code {
             case .timedOut:
                 throw APIError.timeout
@@ -129,13 +76,22 @@ class DefaultAPIClient: APIClient {
             default:
                 throw APIError.unknown(urlError.localizedDescription)
             }
+        } catch let apiError as APIError {
+            throw apiError
         } catch {
-            print("Error desconocido: \(error)")
+            print("Unknown error: \(error)")
             throw APIError.unknown(error.localizedDescription)
         }
     }
     
-    func getUsersWithRetry(count: Int, retries: Int = 3, delay: TimeInterval = 2.0) async throws -> UserResponse {
+    func getUsers(count: Int) async throws -> UserResponse {
+        let endpoint = APIEndpoints.Users.getUsers(count: count)
+        return try await request(endpoint)
+    }
+    
+    func getUsersWithRetry(count: Int) async throws -> UserResponse {
+        let retries = 3
+        let delay: TimeInterval = 2.0
         var currentAttempt = 0
         var lastError: Error?
 
@@ -145,16 +101,12 @@ class DefaultAPIClient: APIClient {
             } catch {
                 lastError = error
                 currentAttempt += 1
-                print("Intento \(currentAttempt) fallido: \(error.localizedDescription)")
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                print("Attempt \(currentAttempt) failed: \(error.localizedDescription)")
+                try await Task.sleep(nanoseconds: UInt64((delay) * 1_000_000_000))
             }
         }
 
-        throw lastError ?? APIError.unknown("Error desconocido tras \(retries) reintentos")
-    }
-    
-    func getUsersWithRetry(count: Int) async throws -> UserResponse {
-        return try await getUsersWithRetry(count: count, retries: 3, delay: 2.0)
+        throw lastError ?? APIError.unknown("Unknown error after \(retries) retries")
     }
 }
 

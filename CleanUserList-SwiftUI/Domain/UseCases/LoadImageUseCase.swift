@@ -11,7 +11,7 @@ protocol LoadImageUseCase {
 class DefaultLoadImageUseCase: LoadImageUseCase {
     
     init() {
-        // No es necesario configurar nada aquí ya que Kingfisher se configura globalmente en la App
+        // No configuration needed here as Kingfisher is configured globally in the App
     }
     
     func execute(from url: URL) async throws -> Image {

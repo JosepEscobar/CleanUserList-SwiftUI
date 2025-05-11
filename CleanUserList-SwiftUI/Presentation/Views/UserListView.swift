@@ -101,7 +101,7 @@ struct UserListView: View {
                     UserRowView(
                         user: user,
                         onDelete: { _ in
-                            // Este callback ya no es necesario ya que usamos swipe-to-delete
+                            // This callback is no longer needed as we use swipe-to-delete
                         },
                         viewModel: viewModel
                     )
@@ -114,7 +114,7 @@ struct UserListView: View {
                     trailing: Constants.horizontalPadding
                 ))
                 .onAppear {
-                    // No cargar más usuarios si estamos realizando una búsqueda
+                    // Don't load more users if we're performing a search
                     guard searchText.isEmpty,
                           !viewModel.isLoadingMoreUsers,
                           user.id == viewModel.filteredUsers.last?.id else { return }

@@ -1,10 +1,10 @@
 @preconcurrency import Foundation
 import SwiftUI
 
-// Marcar el protocolo con @MainActor para hacer que todos sus requisitos sean compatibles con el actor principal
+// Mark the protocol with @MainActor to make all its requirements compatible with the main actor
 @MainActor
 protocol UserListViewModelType: ObservableObject {
-    // Propiedades publicadas
+    // Published properties
     var users: [User] { get }
     var filteredUsers: [User] { get }
     var isLoading: Bool { get }
@@ -16,7 +16,7 @@ protocol UserListViewModelType: ObservableObject {
     var isLoadingMoreUsers: Bool { get }
     var allUsersLoaded: Bool { get }
     
-    // Acciones que puede realizar
+    // Actions that can be performed
     func loadMoreUsers(count: Int)
     func loadSavedUsers()
     func deleteUser(withID id: String)
@@ -24,7 +24,7 @@ protocol UserListViewModelType: ObservableObject {
     func makeUserDetailViewModel(for user: User) -> UserDetailViewModel
     func loadImage(from url: URL) async throws -> Image
     
-    // Métodos para testing
+    // Methods for testing
     func reset()
 }
 
@@ -55,7 +55,7 @@ final class UserListViewModel: UserListViewModelType {
             } else {
                 searchUsers(query: searchText)
                 
-                // Si estamos buscando, cancelamos cualquier tarea de carga adicional
+                // If we're searching, cancel any additional loading task
                 loadMoreTask?.cancel()
                 isLoadingMoreUsers = false
             }
@@ -155,7 +155,7 @@ final class UserListViewModel: UserListViewModelType {
                 
                 if !Task.isCancelled {
                     if query != searchText {
-                        // Resultados descartados
+                        // Results discarded
                     } else {
                         self.filteredUsers = results
                     }
@@ -244,7 +244,7 @@ final class UserListViewModel: UserListViewModelType {
     }
     
     func loadMoreUsers(count: Int = 20) {
-        // No cargar más usuarios si estamos realizando una búsqueda
+        // Don't load more users if we're performing a search
         if !searchText.isEmpty {
             return
         }
