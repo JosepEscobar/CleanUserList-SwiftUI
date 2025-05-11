@@ -1,9 +1,15 @@
 import Foundation
 
 final class ForceHTTP11URLProtocol: URLProtocol, @unchecked Sendable {
+    private enum Constants {
+        static let protocolHandlerKey = "HandledByForceHTTP11URLProtocol"
+        static let altSvcHeader = "Alt-Svc"
+        static let altSvcEmptyValue = ""
+    }
+    
     override class func canInit(with request: URLRequest) -> Bool {
         // We intercept only once to avoid infinite loops
-        return URLProtocol.property(forKey: "HandledByForceHTTP11URLProtocol", in: request) == nil
+        return URLProtocol.property(forKey: Constants.protocolHandlerKey, in: request) == nil
     }
 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest {
@@ -16,12 +22,12 @@ final class ForceHTTP11URLProtocol: URLProtocol, @unchecked Sendable {
             return
         }
             
-        URLProtocol.setProperty(true, forKey: "HandledByForceHTTP11URLProtocol", in: mutableRequest)
+        URLProtocol.setProperty(true, forKey: Constants.protocolHandlerKey, in: mutableRequest)
         let newRequest = mutableRequest as URLRequest
 
         // Create a session with forced HTTP/1.1
         let config = URLSessionConfiguration.ephemeral
-        config.httpAdditionalHeaders = ["Alt-Svc": ""] // Reinforce that no alternative services are used
+        config.httpAdditionalHeaders = [Constants.altSvcHeader: Constants.altSvcEmptyValue] // Reinforce that no alternative services are used
         config.protocolClasses = [] // Remove this protocol to avoid loops
 
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)

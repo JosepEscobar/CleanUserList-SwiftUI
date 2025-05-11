@@ -17,6 +17,12 @@ class DefaultAPIClient: APIClient {
     private enum Constants {
         static let dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         static let locale = "en_US_POSIX"
+        static let defaultRetries = 3
+        static let defaultRetryDelay: TimeInterval = 2.0
+        static let nanosecondsPerSecond: Double = 1_000_000_000
+        static let successStatusCodeRange = 200...299
+        static let clientErrorStatusCodeRange = 400...499
+        static let serverErrorStatusCodeRange = 500...599
     }
     
     private let decoder: JSONDecoder
@@ -53,11 +59,11 @@ class DefaultAPIClient: APIClient {
             
             // Handle HTTP status codes
             switch httpResponse.statusCode {
-            case 200...299:
+            case Constants.successStatusCodeRange:
                 return try decoder.decode(T.self, from: data)
-            case 400...499:
+            case Constants.clientErrorStatusCodeRange:
                 throw APIError.serverError(statusCode: httpResponse.statusCode)
-            case 500...599:
+            case Constants.serverErrorStatusCodeRange:
                 throw APIError.serverError(statusCode: httpResponse.statusCode)
             default:
                 throw APIError.responseError
@@ -90,8 +96,8 @@ class DefaultAPIClient: APIClient {
     }
     
     func getUsersWithRetry(count: Int) async throws -> UserResponse {
-        let retries = 3
-        let delay: TimeInterval = 2.0
+        let retries: Int = Constants.defaultRetries
+        let delay: TimeInterval = Constants.defaultRetryDelay
         var currentAttempt = 0
         var lastError: Error?
 
@@ -102,7 +108,7 @@ class DefaultAPIClient: APIClient {
                 lastError = error
                 currentAttempt += 1
                 print("Attempt \(currentAttempt) failed: \(error.localizedDescription)")
-                try await Task.sleep(nanoseconds: UInt64((delay) * 1_000_000_000))
+                try await Task.sleep(nanoseconds: UInt64(delay * Constants.nanosecondsPerSecond))
             }
         }
 

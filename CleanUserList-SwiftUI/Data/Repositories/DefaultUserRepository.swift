@@ -2,11 +2,17 @@ import Foundation
 
 @MainActor
 class DefaultUserRepository: UserRepository {
+    private enum Constants {
+        static let maxRetries: Int = 3
+        static let minUserCountForDirectAPILoad: Int = 20
+        static let oneSecondInNanoseconds: UInt64 = 1_000_000_000
+        static let userCountThresholdRatio: Int = 2 // divisor for sufficient users count (count/2)
+    }
+    
     private let apiClient: APIClient
     private let userStorage: UserStorage
     private var lastRequestedCount: Int = 0
     private var retryCount: Int = 0
-    private let maxRetries: Int = 3
     private var isFirstLoad: Bool = true
     
     init(apiClient: APIClient, userStorage: UserStorage) {
@@ -19,7 +25,7 @@ class DefaultUserRepository: UserRepository {
         
         do {
             // If it's the first load and more than 20 users are requested, load directly from the API
-            if isFirstLoad && count >= 20 {
+            if isFirstLoad && count >= Constants.minUserCountForDirectAPILoad {
                 isFirstLoad = false
                 // Try to load directly from the API for faster initial response
                 return try await fetchAndStoreMoreUsers(count: count)
@@ -30,7 +36,7 @@ class DefaultUserRepository: UserRepository {
             
             // If there are saved users and they are enough, return them immediately
             // and update in the background
-            if !savedUsers.isEmpty && savedUsers.count >= count / 2 {
+            if !savedUsers.isEmpty && savedUsers.count >= count / Constants.userCountThresholdRatio {
                 // Update in the background only if it's not the first load
                 Task {
                     do {
@@ -76,12 +82,12 @@ class DefaultUserRepository: UserRepository {
             return newUsers
         } catch let apiError as APIError {
             // Retry in case of network errors
-            if case .networkError = apiError, retryCount < maxRetries {
+            if case .networkError = apiError, retryCount < Constants.maxRetries {
                 retryCount += 1
                 // Wait less time on the first retry for better reactivity
                 let waitTime = isFirstLoad ? 
-                    UInt64(1_000_000_000) : // 1 second if it's the first load
-                    UInt64(pow(2.0, Double(retryCount)) * 1_000_000_000)
+                    Constants.oneSecondInNanoseconds : // 1 second if it's the first load
+                    UInt64(pow(2.0, Double(retryCount)) * Double(Constants.oneSecondInNanoseconds))
                     
                 try await Task.sleep(nanoseconds: waitTime)
                 return try await fetchAndStoreMoreUsers(count: count)

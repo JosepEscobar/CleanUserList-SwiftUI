@@ -3,8 +3,12 @@ import Foundation
 
 @MainActor
 class SwiftDataStorage: UserStorage {
+    private enum Constants {
+        static let maxTransactionRetries: Int = 3
+        static let retryDelayNanoseconds: UInt64 = 500_000_000 // 0.5 seconds
+    }
+    
     private let modelContainer: ModelContainer
-    private let maxTransactionRetries = 3
     
     init() throws {
         let schema = Schema([UserEntity.self])
@@ -25,7 +29,7 @@ class SwiftDataStorage: UserStorage {
         var lastError: Error? = nil
         
         // Try to save with retries if there are transactional errors
-        while retryCount < maxTransactionRetries {
+        while retryCount < Constants.maxTransactionRetries {
             do {
                 try await performSaveUsers(users)
                 return // If successful, exit the function
@@ -34,9 +38,9 @@ class SwiftDataStorage: UserStorage {
                 lastError = error
                 retryCount += 1
                 
-                if retryCount < maxTransactionRetries {
+                if retryCount < Constants.maxTransactionRetries {
                     // Wait a bit before retrying
-                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                    try await Task.sleep(nanoseconds: Constants.retryDelayNanoseconds)
                 }
             }
         }

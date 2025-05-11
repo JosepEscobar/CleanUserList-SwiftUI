@@ -35,6 +35,7 @@ final class UserListViewModel: UserListViewModelType {
         static let maxNetworkRetryAttempts = 3
         static let retryDelay: UInt64 = 3_000_000_000 // 3 seconds in nanoseconds
         static let searchDelay: UInt64 = 300_000_000 // 300ms in nanoseconds
+        static let defaultLoadCount = 20
         
         enum ErrorMessages {
             static let connectionError = "Connection error. Please check your network and try again."
@@ -112,7 +113,7 @@ final class UserListViewModel: UserListViewModelType {
     
     // MARK: - Image Loading
     func loadImage(from url: URL) async throws -> Image {
-        // Capturar el use case localmente para evitar data races
+        // Capture the use case locally to avoid data races
         let useCase = self.loadImageUseCase
         return try await useCase.execute(from: url)
     }
@@ -243,7 +244,7 @@ final class UserListViewModel: UserListViewModelType {
         }
     }
     
-    func loadMoreUsers(count: Int = 20) {
+    func loadMoreUsers(count: Int = Constants.defaultLoadCount) {
         // Don't load more users if we're performing a search
         if !searchText.isEmpty {
             return
@@ -257,7 +258,7 @@ final class UserListViewModel: UserListViewModelType {
         }
     }
     
-    private func loadMoreUsersAsync(count: Int = 20) async {
+    private func loadMoreUsersAsync(count: Int = Constants.defaultLoadCount) async {
         guard !isLoadingMoreUsers else { return }
         
         isLoading = true
@@ -308,13 +309,13 @@ final class UserListViewModel: UserListViewModelType {
             self.hasLoadedUsers = true
             
             if savedUsers.isEmpty {
-                await loadMoreUsersAsync(count: Constants.defaultUserCount)
+                await loadMoreUsersAsync(count: Constants.defaultLoadCount)
             }
             
         } catch {
             self.handleError(error)
             
-            await loadMoreUsersAsync(count: Constants.defaultUserCount)
+            await loadMoreUsersAsync(count: Constants.defaultLoadCount)
         }
         
         isLoading = false

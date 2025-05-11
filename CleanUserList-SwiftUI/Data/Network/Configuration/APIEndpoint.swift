@@ -6,14 +6,20 @@ enum APIEnvironment {
     case staging
     case production
     
+    private enum Constants {
+        static let devBaseURL = "https://dev.api.randomuser.me" // Just to example
+        static let stagingBaseURL = "https://staging.api.randomuser.me" // Just to example
+        static let productionBaseURL = "https://api.randomuser.me"
+    }
+    
     var baseURL: String {
         switch self {
         case .development:
-            return "https://dev.api.randomuser.me"
+            return Constants.devBaseURL
         case .staging:
-            return "https://staging.api.randomuser.me"
+            return Constants.stagingBaseURL
         case .production:
-            return "https://api.randomuser.me"
+            return Constants.productionBaseURL
         }
     }
 }
@@ -29,6 +35,12 @@ enum HTTPMethod: String {
 
 /// Structure to define an API endpoint
 struct APIEndpoint {
+    private enum Constants {
+        static let acceptHeader = "Accept"
+        static let contentTypeHeader = "Content-Type"
+        static let jsonContentType = "application/json"
+    }
+    
     let path: String
     let method: HTTPMethod
     let queryItems: [URLQueryItem]?
@@ -42,7 +54,7 @@ struct APIEndpoint {
         queryItems: [URLQueryItem]? = nil,
         headers: [String: String]? = nil,
         body: Data? = nil,
-        environment: APIEnvironment = .production
+        environment: APIEnvironment = .production // Here we can configure with a debug flag, or app settings in debug.
     ) {
         self.path = path
         self.method = method
@@ -66,8 +78,8 @@ struct APIEndpoint {
         request.httpBody = body
         
         // Set common default headers
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Constants.jsonContentType, forHTTPHeaderField: Constants.acceptHeader)
+        request.setValue(Constants.jsonContentType, forHTTPHeaderField: Constants.contentTypeHeader)
         
         // Add endpoint-specific headers
         headers?.forEach { request.setValue($1, forHTTPHeaderField: $0) }
