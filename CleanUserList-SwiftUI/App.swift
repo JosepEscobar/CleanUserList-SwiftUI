@@ -14,6 +14,9 @@ struct CleanUserList_SwiftUIApp: App {
     let dependencyContainer = DependencyContainer()
     
     init() {
+        // Inicializar el NetworkChecker para garantizar que se inicie la monitorización de red
+        _ = NetworkChecker.shared
+        
         // Configurar Kingfisher al iniciar la aplicación
         UserAsyncImageView.configureKingfisher()
         

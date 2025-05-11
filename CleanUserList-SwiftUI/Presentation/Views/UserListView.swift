@@ -114,9 +114,15 @@ struct UserListView: View {
                     trailing: Constants.horizontalPadding
                 ))
                 .onAppear {
-                    // Cargar más usuarios cuando el usuario llega a uno de los últimos elementos
-                    if user.id == viewModel.filteredUsers.suffix(Constants.loadMoreThreshold).first?.id {
-                        viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    // No cargar más usuarios si estamos realizando una búsqueda
+                    guard searchText.isEmpty,
+                          !viewModel.isLoadingMoreUsers,
+                          user.id == viewModel.filteredUsers.last?.id else { return }
+
+                    Task {
+                        await MainActor.run {
+                            viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                        }
                     }
                 }
             }

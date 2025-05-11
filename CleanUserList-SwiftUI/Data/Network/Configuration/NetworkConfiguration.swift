@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 struct NetworkConfiguration {
     private enum Constants {
@@ -29,7 +30,11 @@ struct NetworkConfiguration {
         configuration.httpAdditionalHeaders = [
             "Accept": Constants.Headers.accept,
             "Content-Type": Constants.Headers.contentType,
+            "Alt-Svc": ""
         ]
+        
+        // Forzar el uso de HTTP/1.1 mediante nuestro URLProtocol personalizado
+        configuration.protocolClasses = [ForceHTTP11URLProtocol.self]
         
         return URLSession(configuration: configuration)
     }

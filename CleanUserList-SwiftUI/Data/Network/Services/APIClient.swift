@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 enum APIError: Error, Equatable {
     case networkError
@@ -62,6 +63,8 @@ extension DateFormatter: DateFormatterProtocol {}
 @MainActor
 protocol APIClient {
     func getUsers(count: Int) async throws -> UserResponse
+    func getUsersWithRetry(count: Int, retries: Int, delay: TimeInterval) async throws -> UserResponse
+    func getUsersWithRetry(count: Int) async throws -> UserResponse
 }
 
 @MainActor
@@ -87,6 +90,11 @@ class DefaultAPIClient: APIClient {
     }
     
     func getUsers(count: Int) async throws -> UserResponse {
+        // Verificar la conectividad antes de realizar la solicitud
+        guard NetworkChecker.shared.isConnected else {
+            throw APIError.unreachable
+        }
+        
         // Garantizar que cada solicitud use un seed único basado en timestamp
         let urlString = "\(Constants.baseURL)/?results=\(count)"
         guard let url = URL(string: urlString) else {
@@ -126,6 +134,28 @@ class DefaultAPIClient: APIClient {
             throw APIError.unknown(error.localizedDescription)
         }
     }
-} 
+    
+    func getUsersWithRetry(count: Int, retries: Int = 3, delay: TimeInterval = 2.0) async throws -> UserResponse {
+        var currentAttempt = 0
+        var lastError: Error?
+
+        while currentAttempt < retries {
+            do {
+                return try await getUsers(count: count)
+            } catch {
+                lastError = error
+                currentAttempt += 1
+                print("Intento \(currentAttempt) fallido: \(error.localizedDescription)")
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+
+        throw lastError ?? APIError.unknown("Error desconocido tras \(retries) reintentos")
+    }
+    
+    func getUsersWithRetry(count: Int) async throws -> UserResponse {
+        return try await getUsersWithRetry(count: count, retries: 3, delay: 2.0)
+    }
+}
 
 

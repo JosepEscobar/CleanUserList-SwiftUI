@@ -58,7 +58,7 @@ class DefaultUserRepository: UserRepository {
     private func fetchAndStoreMoreUsers(count: Int) async throws -> [User] {
         do {
             // Cargar con tiempo de timeout reducido en la primera carga para mayor reactividad
-            let response = try await apiClient.getUsers(count: count)
+            let response = try await apiClient.getUsersWithRetry(count: count)
             let newUsers = response.results.map { $0.toDomain() }
             
             // Guardar usuarios en una tarea separada para no bloquear la UI

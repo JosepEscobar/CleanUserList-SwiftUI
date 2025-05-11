@@ -14,6 +14,7 @@ protocol UserListViewModelType: ObservableObject {
     var hasLoadedUsers: Bool { get }
     var isEmptyState: Bool { get }
     var isLoadingMoreUsers: Bool { get }
+    var allUsersLoaded: Bool { get }
     
     // Acciones que puede realizar
     func loadMoreUsers(count: Int)
@@ -53,12 +54,17 @@ final class UserListViewModel: UserListViewModelType {
                 filteredUsers = users
             } else {
                 searchUsers(query: searchText)
+                
+                // Si estamos buscando, cancelamos cualquier tarea de carga adicional
+                loadMoreTask?.cancel()
+                isLoadingMoreUsers = false
             }
         }
     }
     @Published var isNetworkError: Bool = false
     @Published var hasLoadedUsers: Bool = false
     @Published var isLoadingMoreUsers: Bool = false
+    @Published var allUsersLoaded: Bool = false
     
     // MARK: - Dependencies
     private let getUsersUseCase: GetUsersUseCase
@@ -124,6 +130,7 @@ final class UserListViewModel: UserListViewModelType {
         loadMoreTask?.cancel()
         searchTask?.cancel()
         isLoadingMoreUsers = false
+        allUsersLoaded = false
     }
     
     // MARK: - Private Methods
@@ -237,6 +244,11 @@ final class UserListViewModel: UserListViewModelType {
     }
     
     func loadMoreUsers(count: Int = 20) {
+        // No cargar más usuarios si estamos realizando una búsqueda
+        if !searchText.isEmpty {
+            return
+        }
+        
         loadMoreTask?.cancel()
         
         loadMoreTask = Task { [weak self] in
@@ -245,7 +257,9 @@ final class UserListViewModel: UserListViewModelType {
         }
     }
     
-    private func loadMoreUsersAsync(count: Int = 40) async {
+    private func loadMoreUsersAsync(count: Int = 20) async {
+        guard !isLoadingMoreUsers else { return }
+        
         isLoading = true
         isLoadingMoreUsers = true
         errorMessage = nil
