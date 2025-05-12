@@ -4,6 +4,16 @@ struct ErrorView: View {
     private enum Constants {
         static let largeIconSize: CGFloat = 50
         static let buttonCornerRadius: CGFloat = 8
+        static let verticalSpacing: CGFloat = 20
+        static let iconPadding: CGFloat = 0
+        static let horizontalTextPadding: CGFloat = 0
+        static let buttonBackgroundColor = Color.blue
+        static let buttonTextColor = Color.white
+        static let secondaryButtonBackgroundOpacity: Double = 0.2
+        static let secondaryButtonBackgroundColor = Color.gray
+        static let secondaryButtonTextColor = Color.primary
+        static let errorColor = Color.red
+        static let topBottomPadding: CGFloat = 0
     }
     
     let message: String
@@ -13,24 +23,24 @@ struct ErrorView: View {
     let onContinueWithSaved: () -> Void
     
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        VStack(spacing: Constants.verticalSpacing) {
+            Spacer(minLength: Constants.topBottomPadding)
             
             Image(systemName: isNetworkError ? "wifi.exclamationmark" : "exclamationmark.triangle")
                 .font(.system(size: Constants.largeIconSize))
-                .foregroundColor(.red)
-                .padding()
+                .foregroundColor(Constants.errorColor)
+                .padding(Constants.iconPadding)
             
             Text(message)
-                .foregroundColor(.red)
+                .foregroundColor(Constants.errorColor)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .padding(.horizontal, Constants.horizontalTextPadding)
             
             if isNetworkError {
                 LocalizedText("connection_problem")
                     .font(.caption)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.horizontal, Constants.horizontalTextPadding)
             }
             
             Button(action: onRetry) {
@@ -39,8 +49,8 @@ struct ErrorView: View {
                     LocalizedText("retry")
                 }
                 .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
+                .background(Constants.buttonBackgroundColor)
+                .foregroundColor(Constants.buttonTextColor)
                 .cornerRadius(Constants.buttonCornerRadius)
             }
             
@@ -48,13 +58,13 @@ struct ErrorView: View {
                 Button(action: onContinueWithSaved) {
                     LocalizedText("continue_with_saved_users", arguments: savedUsersCount)
                         .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
+                        .background(Constants.secondaryButtonBackgroundColor.opacity(Constants.secondaryButtonBackgroundOpacity))
+                        .foregroundColor(Constants.secondaryButtonTextColor)
                         .cornerRadius(Constants.buttonCornerRadius)
                 }
             }
             
-            Spacer()
+            Spacer(minLength: Constants.topBottomPadding)
         }
     }
 } 

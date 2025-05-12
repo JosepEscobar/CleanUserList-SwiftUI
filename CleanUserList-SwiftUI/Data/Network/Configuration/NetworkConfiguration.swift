@@ -12,6 +12,14 @@ struct NetworkConfiguration {
         enum Headers {
             static let accept = "application/json"
             static let contentType = "application/json"
+            static let altSvc = ""
+            static let acceptKey = "Accept"
+            static let contentTypeKey = "Content-Type"
+            static let altSvcKey = "Alt-Svc"
+        }
+        
+        enum Network {
+            static let forcedProtocolClass: AnyClass = ForceHTTP11URLProtocol.self
         }
     }
     
@@ -28,13 +36,13 @@ struct NetworkConfiguration {
         configuration.waitsForConnectivity = false
         configuration.urlCache = cache
         configuration.httpAdditionalHeaders = [
-            "Accept": Constants.Headers.accept,
-            "Content-Type": Constants.Headers.contentType,
-            "Alt-Svc": ""
+            Constants.Headers.acceptKey: Constants.Headers.accept,
+            Constants.Headers.contentTypeKey: Constants.Headers.contentType,
+            Constants.Headers.altSvcKey: Constants.Headers.altSvc
         ]
         
         // Force the use of HTTP/1.1 using our custom URLProtocol
-        configuration.protocolClasses = [ForceHTTP11URLProtocol.self]
+        configuration.protocolClasses = [Constants.Network.forcedProtocolClass]
         
         return URLSession(configuration: configuration)
     }

@@ -22,6 +22,18 @@ struct UserDetailView: View {
         static let cardPadding: CGFloat = 20
         static let strokeOpacity: Double = 0.3
         static let iconColor = Color(UIColor.systemGray)
+        static let backgroundColor = Color.white
+        static let shadowColor = Color.black
+        static let initialYOffset: CGFloat = 50
+        static let noYOffset: CGFloat = 0
+        static let springAnimationResponse: Double = 0.5
+        static let delayAppearance: Double = 0.1
+        static let initialOpacity: Double = 0
+        static let fullOpacity: Double = 1
+        static let lineLimit: Int = 2
+        static let fontWeightBody = Font.Weight.medium
+        static let iconFontWeight = Font.Weight.semibold
+        static let textColor = Color.white
     }
     
     @ObservedObject var viewModel: UserDetailViewModel
@@ -38,7 +50,7 @@ struct UserDetailView: View {
                         Circle()
                             .stroke(Constants.iconColor.opacity(Constants.strokeOpacity), lineWidth: Constants.profileImageStrokeWidth)
                     )
-                    .shadow(color: Color.black.opacity(Constants.shadowOpacity), radius: Constants.profileImageShadowRadius)
+                    .shadow(color: Constants.shadowColor.opacity(Constants.shadowOpacity), radius: Constants.profileImageShadowRadius)
                     .padding(.top, Constants.profileImageTopPadding)
                 
                 // Information card
@@ -58,16 +70,16 @@ struct UserDetailView: View {
                 .padding(Constants.cardPadding)
                 .background(
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(Constants.shadowOpacity), 
+                        .fill(Constants.backgroundColor)
+                        .shadow(color: Constants.shadowColor.opacity(Constants.shadowOpacity), 
                                radius: Constants.shadowRadius, 
                                x: 0, 
                                y: Constants.shadowOffsetY)
                 )
                 .padding(.horizontal, Constants.horizontalPadding)
-                .opacity(isViewAppeared ? 1 : 0)
-                .offset(y: isViewAppeared ? 0 : 50)
-                .animation(.spring(response: 0.5), value: isViewAppeared)
+                .opacity(isViewAppeared ? Constants.fullOpacity : Constants.initialOpacity)
+                .offset(y: isViewAppeared ? Constants.noYOffset : Constants.initialYOffset)
+                .animation(.spring(response: Constants.springAnimationResponse), value: isViewAppeared)
                 
                 Spacer(minLength: Constants.minSpacing)
             }
@@ -75,10 +87,10 @@ struct UserDetailView: View {
         }
         .navigationTitle("user_details".localized)
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color.white.ignoresSafeArea())
+        .background(Constants.backgroundColor.ignoresSafeArea())
         .id(viewModel.refreshID)
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.delayAppearance) {
                 isViewAppeared = true
             }
         }
@@ -92,22 +104,22 @@ struct UserDetailView: View {
         HStack(alignment: .center, spacing: Constants.rowSpacing) {
             // Icon in circle
             Image(systemName: icon)
-                .font(.system(size: Constants.iconSize, weight: .semibold))
-                .foregroundColor(.white)
+                .font(.system(size: Constants.iconSize, weight: Constants.iconFontWeight))
+                .foregroundColor(Constants.textColor)
                 .frame(width: Constants.iconCircleSize, height: Constants.iconCircleSize)
                 .background(Circle().fill(Constants.iconColor))
             
             VStack(alignment: .leading, spacing: Constants.textSpacing) {
                 LocalizedText(key)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(Constants.fontWeightBody)
                     .foregroundColor(.secondary)
                 
                 Text(value)
                     .font(.body)
-                    .fontWeight(.medium)
+                    .fontWeight(Constants.fontWeightBody)
                     .foregroundColor(.primary)
-                    .lineLimit(2)
+                    .lineLimit(Constants.lineLimit)
                     .fixedSize(horizontal: false, vertical: true)
             }
             

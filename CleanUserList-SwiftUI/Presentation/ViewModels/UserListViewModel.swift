@@ -39,6 +39,20 @@ final class UserListViewModel: UserListViewModelType {
             static let showingSavedUsers = "Connection error. Showing saved users."
             static let tooManyAttempts = "Too many failed attempts. Users could not be loaded."
         }
+        
+        enum Network {
+            static let serviceUnavailableStatusCode = 503
+            static let networkErrorCodes: [Int] = [
+                NSURLErrorTimedOut,
+                NSURLErrorCannotFindHost,
+                NSURLErrorCannotConnectToHost,
+                NSURLErrorNetworkConnectionLost,
+                NSURLErrorDNSLookupFailed,
+                NSURLErrorNotConnectedToInternet,
+                NSURLErrorInternationalRoamingOff,
+                NSURLErrorCallIsActive
+            ]
+        }
     }
     
     // MARK: - Published Properties
@@ -251,24 +265,14 @@ final class UserListViewModel: UserListViewModelType {
         if let apiError = error as? APIError {
             return apiError == .networkError || 
                    apiError == .timeout || 
-                   apiError == .serverError(statusCode: 503) || 
+                   apiError == .serverError(statusCode: Constants.Network.serviceUnavailableStatusCode) || 
                    apiError == .unreachable
         }
         
         // Check URLError error codes
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
-            let networkErrorCodes: [Int] = [
-                NSURLErrorTimedOut,
-                NSURLErrorCannotFindHost,
-                NSURLErrorCannotConnectToHost,
-                NSURLErrorNetworkConnectionLost,
-                NSURLErrorDNSLookupFailed,
-                NSURLErrorNotConnectedToInternet,
-                NSURLErrorInternationalRoamingOff,
-                NSURLErrorCallIsActive
-            ]
-            return networkErrorCodes.contains(nsError.code)
+            return Constants.Network.networkErrorCodes.contains(nsError.code)
         }
         
         return false

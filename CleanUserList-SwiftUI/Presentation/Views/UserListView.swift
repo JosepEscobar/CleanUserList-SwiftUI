@@ -16,6 +16,13 @@ struct UserListView: View {
         static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
         static let listTopPadding: CGFloat = 16
+        static let mainStackSpacing: CGFloat = 0
+        static let loadingScale: CGFloat = 1.5
+        static let rowVerticalPadding: CGFloat = 4
+        static let rowTopInset: CGFloat = 8
+        static let rowBottomInset: CGFloat = 8
+        static let infiniteScrollTriggerHeight: CGFloat = 20
+        static let defaultBottomColor = Color.white
     }
     
     init(viewModel: UserListViewModel) {
@@ -25,10 +32,10 @@ struct UserListView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white
+                Constants.defaultBottomColor
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
+                VStack(spacing: Constants.mainStackSpacing) {
                     searchBar
                     mainContent
                 }
@@ -64,7 +71,7 @@ struct UserListView: View {
     
     private var loadingView: some View {
         ProgressView()
-            .scaleEffect(1.5)
+            .scaleEffect(Constants.loadingScale)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
@@ -108,12 +115,12 @@ struct UserListView: View {
                         },
                         viewModel: viewModel
                     )
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Constants.rowVerticalPadding)
                 }
                 .listRowInsets(EdgeInsets(
-                    top: 8, 
+                    top: Constants.rowTopInset, 
                     leading: Constants.horizontalPadding, 
-                    bottom: 8, 
+                    bottom: Constants.rowBottomInset, 
                     trailing: Constants.horizontalPadding
                 ))
             }
@@ -132,7 +139,7 @@ struct UserListView: View {
             } else if searchText.isEmpty && !viewModel.allUsersLoaded {
                 // Invisible element to trigger loading on infinite scroll
                 Color.clear
-                    .frame(height: 20)
+                    .frame(height: Constants.infiniteScrollTriggerHeight)
                     .listRowSeparator(.hidden)
                     .onAppear {
                         if !viewModel.isLoadingMoreUsers {
@@ -145,7 +152,7 @@ struct UserListView: View {
         }
         .listStyle(.plain)
         .padding(.top, Constants.listTopPadding)
-        .background(Color.white)
+        .background(Constants.defaultBottomColor)
         .refreshable {
             isRefreshing = true
             await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)

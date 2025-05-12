@@ -15,13 +15,21 @@ struct SearchBarView: View {
         static let shadowOpacity: Double = 0.1
         static let shadowOffsetY: CGFloat = 2
         static let animationDuration: Double = 0.2
+        static let clearButtonSize: CGFloat = 4
+        static let clearButtonColor = Color(.systemGray2)
+        static let hStackSpacing: CGFloat = 8 // horizontalPadding / 2
+        static let fontSizeText: CGFloat = 18 // iconSize + 2
+        static let clearButtonIconSize: CGFloat = 16 // same as icon size
+        static let borderWidth: CGFloat = 1
+        static let borderOpacity: Double = 0.3
+        static let shadowOffsetX: CGFloat = 0
     }
     
     @Binding var searchText: String
     @State private var isFocused: Bool = false
     
     var body: some View {
-        HStack(spacing: Constants.horizontalPadding / 2) {
+        HStack(spacing: Constants.hStackSpacing) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(searchText.isEmpty ? Constants.placeholderColor : Constants.accentColor)
                 .font(.system(size: Constants.iconSize, weight: .medium))
@@ -29,7 +37,7 @@ struct SearchBarView: View {
             TextField("search_users".localized, text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .disableAutocorrection(true)
-                .font(.system(size: Constants.iconSize + 2, weight: .regular))
+                .font(.system(size: Constants.fontSizeText, weight: .regular))
                 .onChange(of: searchText) { _, _ in
                     withAnimation(.easeInOut(duration: Constants.animationDuration)) {
                         isFocused = true
@@ -41,9 +49,9 @@ struct SearchBarView: View {
                     searchText = ""
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(Color(.systemGray2))
-                        .font(.system(size: Constants.iconSize))
-                        .padding(4)
+                        .foregroundColor(Constants.clearButtonColor)
+                        .font(.system(size: Constants.clearButtonIconSize))
+                        .padding(Constants.clearButtonSize)
                 }
                 .transition(.opacity)
                 .animation(.easeInOut, value: searchText)
@@ -56,11 +64,11 @@ struct SearchBarView: View {
                 .fill(Constants.backgroundColor)
                 .shadow(color: Color.black.opacity(Constants.shadowOpacity), 
                         radius: Constants.shadowRadius, 
-                        x: 0, 
+                        x: Constants.shadowOffsetX, 
                         y: Constants.shadowOffsetY)
                 .overlay(
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .stroke(isFocused || !searchText.isEmpty ? Constants.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                        .stroke(isFocused || !searchText.isEmpty ? Constants.accentColor.opacity(Constants.borderOpacity) : Color.clear, lineWidth: Constants.borderWidth)
                 )
         )
         .padding(.horizontal)
