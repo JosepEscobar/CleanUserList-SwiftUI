@@ -1,6 +1,6 @@
 import Foundation
 
-/// Authentication-related endpoints (Its Just an example for another endpoint creation)
+/// Authentication-related endpoints (Its Just an example for another endpoint creation with POST)
 extension APIEndpoints {
     enum Auth {
         private enum Constants {

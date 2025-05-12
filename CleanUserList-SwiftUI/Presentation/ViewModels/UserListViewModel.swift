@@ -23,9 +23,6 @@ protocol UserListViewModelType: ObservableObject {
     func retryLoading()
     func makeUserDetailViewModel(for user: User) -> UserDetailViewModel
     func loadImage(from url: URL) async throws -> Image
-    
-    // Methods for testing
-    func reset()
 }
 
 @MainActor
@@ -116,22 +113,6 @@ final class UserListViewModel: UserListViewModelType {
         // Capture the use case locally to avoid data races
         let useCase = self.loadImageUseCase
         return try await useCase.execute(from: url)
-    }
-    
-    // MARK: - Test Helpers
-    func reset() {
-        users = []
-        filteredUsers = []
-        isLoading = false
-        errorMessage = nil
-        isNetworkError = false
-        searchText = ""
-        hasLoadedUsers = false
-        networkRetryAttempts = 0
-        loadMoreTask?.cancel()
-        searchTask?.cancel()
-        isLoadingMoreUsers = false
-        allUsersLoaded = false
     }
     
     // MARK: - Private Methods

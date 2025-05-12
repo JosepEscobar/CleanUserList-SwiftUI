@@ -1,6 +1,29 @@
 import XCTest
+import Network
+import Nimble
 @testable import CleanUserList_SwiftUI
 
+// Protect the URLSession constructor
+extension URLSession {
+    static func createMockSession(data: Data, response: URLResponse, error: Error? = nil) -> URLSession {
+        // Configure a URLProtocol mock
+        let mockConfig = URLSessionConfiguration.ephemeral
+        mockConfig.protocolClasses = [MockURLProtocol.self]
+        
+        // Configure the handler for MockURLProtocol
+        MockURLProtocol.requestHandler = { request in
+            if let error = error {
+                throw error
+            }
+            return (data, response)
+        }
+        
+        return URLSession(configuration: mockConfig)
+    }
+}
+
+
+@MainActor
 class APIClientTests: XCTestCase {
     
     func testGetUsersSuccess() async throws {
@@ -41,52 +64,64 @@ class APIClientTests: XCTestCase {
         }
         """.data(using: .utf8)!
         
-        let mockSession = MockURLSession(data: jsonData, response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        let mockSession = URLSession.createMockSession(
+            data: jsonData, 
+            response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        )
         
-        let apiClient = DefaultAPIClient(baseURL: "https://test.com", session: mockSession)
+        let apiClient = DefaultAPIClient(session: mockSession)
         
         // When
         let response = try await apiClient.getUsers(count: 1)
         
         // Then
-        XCTAssertNotNil(response)
-        XCTAssertEqual(response.results.count, 1)
-        XCTAssertEqual(response.results.first?.name.first, "John")
-        XCTAssertEqual(response.results.first?.name.last, "Doe")
+        expect(response).toNot(beNil())
+        expect(response.results.count).to(equal(1))
+        expect(response.results.first?.name.first).to(equal("John"))
+        expect(response.results.first?.name.last).to(equal("Doe"))
     }
     
-    func testGetUsersInvalidURL() async {
+    func testGetUsersNetworkError() async {
         // Given
-        let apiClient = DefaultAPIClient(baseURL: "")
+        let mockSession = URLSession.createMockSession(
+            data: Data(),
+            response: URLResponse(),
+            error: NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil)
+        )
+        
+        let apiClient = DefaultAPIClient(session: mockSession)
         
         // When / Then
         do {
             _ = try await apiClient.getUsers(count: 1)
-            XCTFail("Expected an error but the function completed successfully")
+            fail("Expected an error but the function completed successfully")
         } catch {
-            XCTAssertTrue(error is APIError)
+            expect(error).to(beAKindOf(APIError.self))
             if let apiError = error as? APIError {
-                XCTAssertEqual(apiError, APIError.invalidURL)
+                expect(apiError).to(equal(APIError.networkError))
             }
         }
     }
     
     func testGetUsersServerError() async {
         // Given
-        let mockSession = MockURLSession(data: Data(), response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 500, httpVersion: nil, headerFields: nil)!)
+        let mockSession = URLSession.createMockSession(
+            data: Data(), 
+            response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 500, httpVersion: nil, headerFields: nil)!
+        )
         
-        let apiClient = DefaultAPIClient(baseURL: "https://test.com", session: mockSession)
+        let apiClient = DefaultAPIClient(session: mockSession)
         
         // When / Then
         do {
             _ = try await apiClient.getUsers(count: 1)
-            XCTFail("Expected an error but the function completed successfully")
+            fail("Expected an error but the function completed successfully")
         } catch {
-            XCTAssertTrue(error is APIError)
+            expect(error).to(beAKindOf(APIError.self))
             if let apiError = error as? APIError, case let APIError.serverError(statusCode) = apiError {
-                XCTAssertEqual(statusCode, 500)
+                expect(statusCode).to(equal(500))
             } else {
-                XCTFail("Expected APIError.serverError but got \(String(describing: error))")
+                fail("Expected APIError.serverError but got \(String(describing: error))")
             }
         }
     }
@@ -94,36 +129,20 @@ class APIClientTests: XCTestCase {
     func testGetUsersDecodingError() async {
         // Given
         let invalidJSON = "invalid json".data(using: .utf8)!
-        let mockSession = MockURLSession(data: invalidJSON, response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        let mockSession = URLSession.createMockSession(
+            data: invalidJSON, 
+            response: HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        )
         
-        let apiClient = DefaultAPIClient(baseURL: "https://test.com", session: mockSession)
+        let apiClient = DefaultAPIClient(session: mockSession)
         
         // When / Then
         do {
             _ = try await apiClient.getUsers(count: 1)
-            XCTFail("Expected an error but the function completed successfully")
+            fail("Expected an error but the function completed successfully")
         } catch {
-            XCTAssertTrue(error is APIError)
-            XCTAssertEqual(error as? APIError, APIError.decodingError)
+            expect(error).to(beAKindOf(APIError.self))
+            expect(error as? APIError).to(equal(APIError.decodingError))
         }
-    }
-}
-
-class MockURLSession: URLSessionProtocol {
-    let data: Data
-    let response: URLResponse
-    let error: Error?
-    
-    init(data: Data, response: URLResponse, error: Error? = nil) {
-        self.data = data
-        self.response = response
-        self.error = error
-    }
-    
-    func data(from url: URL) async throws -> (Data, URLResponse) {
-        if let error = error {
-            throw error
-        }
-        return (data, response)
     }
 } 

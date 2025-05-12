@@ -24,6 +24,11 @@ class SwiftDataStorage: UserStorage {
         self.modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
     
+    // Constructor especial para pruebas
+    init(testModelContainer: ModelContainer) {
+        self.modelContainer = testModelContainer
+    }
+    
     func saveUsers(_ users: [User]) async throws {
         var retryCount = 0
         var lastError: Error? = nil
