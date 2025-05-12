@@ -1,15 +1,14 @@
 # CleanUserList-SwiftUI
 
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
-![iOS](https://img.shields.io/badge/iOS-16.0+-blue)
+![iOS](https://img.shields.io/badge/iOS-18.4+-blue)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-4-green)
 ![SwiftData](https://img.shields.io/badge/SwiftData-1-purple)
 ![Xcode](https://img.shields.io/badge/Xcode-16-blue)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean+MVVM-yellow)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen" />
+<p align="left">
   <img src="https://img.shields.io/badge/Tests-Passing-brightgreen" />
   <img src="https://img.shields.io/badge/Coverage-60%25-yellow" />
 </p>
@@ -97,7 +96,7 @@ The project includes comprehensive test coverage:
 
 ### Requirements
 
-- iOS 16.0+
+- iOS 18.4+
 - Xcode 16.0+
 - Swift 6+
 
@@ -127,12 +126,11 @@ CleanUserList-SwiftUI/
 │   └── Repositories/
 ├── Data/
 │   ├── Network/
-│   │   ├── APIClient
-│   │   ├── DTOs
-│   │   └── Configuration
-│   ├── Repositories/
-│   └── PersistentStorage/
-│       └── SwiftData/
+│   │   └── APIClient
+│   ├── PersistentStorage/
+│   │   └── SwiftData/
+│   ├── DTOs
+│   └── Repositories/
 ├── Presentation/
 │   ├── ViewModels/
 │   ├── Views/
@@ -144,9 +142,6 @@ CleanUserList-SwiftUI/
     └── Presentation/
 ```
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/yourusername/CleanUserList-SwiftUI/issues).
 
 ## 📜 License
 
