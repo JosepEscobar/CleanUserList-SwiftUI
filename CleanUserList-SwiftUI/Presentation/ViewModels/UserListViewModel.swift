@@ -256,10 +256,10 @@ final class UserListViewModel: UserListViewModelType {
             
             if !uniqueNewUsers.isEmpty {
                 self.users.append(contentsOf: uniqueNewUsers)
+                self.hasLoadedUsers = true
             }
             
             self.applyFilter()
-            self.hasLoadedUsers = true
             
         } catch {
             self.networkRetryAttempts += 1
@@ -287,7 +287,10 @@ final class UserListViewModel: UserListViewModelType {
             
             self.users = savedUsers
             self.applyFilter()
-            self.hasLoadedUsers = true
+            
+            if !savedUsers.isEmpty {
+                self.hasLoadedUsers = true
+            }
             
             if savedUsers.isEmpty {
                 await loadMoreUsersAsync(count: Constants.defaultLoadCount)

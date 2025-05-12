@@ -13,7 +13,7 @@ struct UserListView: View {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 12
         static let topPadding: CGFloat = 8
-        static let loadMoreThreshold: Int = 3
+        static let loadMoreThreshold: Int = 8
         static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
         static let listTopPadding: CGFloat = 16
@@ -49,11 +49,11 @@ struct UserListView: View {
     
     private var mainContent: some View {
         Group {
-            if viewModel.isLoading && viewModel.users.isEmpty {
+            if viewModel.isLoading && (!viewModel.hasLoadedUsers || viewModel.users.isEmpty) {
                 loadingView
             } else if let error = viewModel.errorMessage {
                 errorView(error: error)
-            } else if viewModel.isEmptyState {
+            } else if viewModel.isEmptyState && viewModel.hasLoadedUsers {
                 emptyStateView
             } else {
                 userList
@@ -114,14 +114,18 @@ struct UserListView: View {
                     trailing: Constants.horizontalPadding
                 ))
                 .onAppear {
-                    // Don't load more users if we're performing a search
-                    guard searchText.isEmpty,
-                          !viewModel.isLoadingMoreUsers,
-                          user.id == viewModel.filteredUsers.last?.id else { return }
-
-                    Task {
-                        await MainActor.run {
-                            viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    // Check if we're approaching the end of the list, not just the last item
+                    // Start loading more when we're a few items away from the end
+                    guard searchText.isEmpty else { return }
+                    
+                    let indexOfUser = viewModel.filteredUsers.firstIndex(where: { $0.id == user.id }) ?? 0
+                    let threshold = viewModel.filteredUsers.count - Constants.loadMoreThreshold
+                    
+                    if indexOfUser >= threshold {
+                        Task {
+                            await MainActor.run {
+                                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                            }
                         }
                     }
                 }
@@ -138,6 +142,18 @@ struct UserListView: View {
                     .frame(maxWidth: .infinity)
                     .listRowSeparator(.hidden)
                     .padding()
+            } else {
+                // Load more trigger element at bottom of list
+                Color.clear
+                    .frame(height: 40)
+                    .listRowSeparator(.hidden)
+                    .onAppear {
+                        Task {
+                            await MainActor.run {
+                                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                            }
+                        }
+                    }
             }
         }
         .listStyle(.plain)
