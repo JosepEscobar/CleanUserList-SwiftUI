@@ -137,7 +137,7 @@ class UserListViewModelTests: XCTestCase {
         mockLoadMoreUsersUseCase.usersToReturn = newUsers
         
         // When
-        viewModel.loadMoreUsers(count: 10)
+        await viewModel.loadMoreUsers(count: 10)
         
         // Then
         // Wait until additional loading completes
@@ -168,7 +168,7 @@ class UserListViewModelTests: XCTestCase {
         mockLoadMoreUsersUseCase.usersToReturn = newUsers
         
         // When
-        viewModel.loadMoreUsers(count: 10)
+        await viewModel.loadMoreUsers(count: 10)
         
         // Then
         // Wait until additional loading completes
@@ -246,7 +246,7 @@ class UserListViewModelTests: XCTestCase {
         viewModel.filteredUsers = users
         
         // When
-        viewModel.deleteUser(withID: "2")
+        await viewModel.deleteUser(withID: "2")
         
         // Wait a bit for async operations
         let expectation = XCTestExpectation(description: "Delete complete")

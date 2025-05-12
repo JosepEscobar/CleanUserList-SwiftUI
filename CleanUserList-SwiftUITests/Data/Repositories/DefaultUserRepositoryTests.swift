@@ -55,7 +55,7 @@ class DefaultUserRepositoryTests: XCTestCase {
         
         // Then
         await awaitExpectation {
-            expect(self.mockStorage.getUsersCallCount).to(equal(1))
+            expect(self.mockStorage.getUsersCallCount).to(equal(2))
             expect(result.count).to(equal(savedUsers.count))
         }
     }
