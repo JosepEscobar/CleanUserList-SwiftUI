@@ -1,10 +1,10 @@
 @preconcurrency import Foundation
 import SwiftUI
 
-// Marcar el protocolo con @MainActor para hacer que todos sus requisitos sean compatibles con el actor principal
+// Mark the protocol with @MainActor to make all its requirements compatible with the main actor
 @MainActor
 protocol UserListViewModelType: ObservableObject {
-    // Propiedades publicadas
+    // Published properties
     var users: [User] { get }
     var filteredUsers: [User] { get }
     var isLoading: Bool { get }
@@ -14,17 +14,15 @@ protocol UserListViewModelType: ObservableObject {
     var hasLoadedUsers: Bool { get }
     var isEmptyState: Bool { get }
     var isLoadingMoreUsers: Bool { get }
+    var allUsersLoaded: Bool { get }
     
-    // Acciones que puede realizar
-    func loadMoreUsers(count: Int)
-    func loadSavedUsers()
+    // Actions that can be performed
+    func loadMoreUsers(count: Int) async
+    func loadInitialUsers() async
     func deleteUser(withID id: String)
     func retryLoading()
     func makeUserDetailViewModel(for user: User) -> UserDetailViewModel
     func loadImage(from url: URL) async throws -> Image
-    
-    // Métodos para testing
-    func reset()
 }
 
 @MainActor
@@ -34,11 +32,26 @@ final class UserListViewModel: UserListViewModelType {
         static let maxNetworkRetryAttempts = 3
         static let retryDelay: UInt64 = 3_000_000_000 // 3 seconds in nanoseconds
         static let searchDelay: UInt64 = 300_000_000 // 300ms in nanoseconds
+        static let defaultLoadCount = 20
         
         enum ErrorMessages {
             static let connectionError = "Connection error. Please check your network and try again."
             static let showingSavedUsers = "Connection error. Showing saved users."
             static let tooManyAttempts = "Too many failed attempts. Users could not be loaded."
+        }
+        
+        enum Network {
+            static let serviceUnavailableStatusCode = 503
+            static let networkErrorCodes: [Int] = [
+                NSURLErrorTimedOut,
+                NSURLErrorCannotFindHost,
+                NSURLErrorCannotConnectToHost,
+                NSURLErrorNetworkConnectionLost,
+                NSURLErrorDNSLookupFailed,
+                NSURLErrorNotConnectedToInternet,
+                NSURLErrorInternationalRoamingOff,
+                NSURLErrorCallIsActive
+            ]
         }
     }
     
@@ -53,12 +66,17 @@ final class UserListViewModel: UserListViewModelType {
                 filteredUsers = users
             } else {
                 searchUsers(query: searchText)
+                
+                // If we're searching, cancel any additional loading task
+                loadMoreTask?.cancel()
+                isLoadingMoreUsers = false
             }
         }
     }
     @Published var isNetworkError: Bool = false
     @Published var hasLoadedUsers: Bool = false
     @Published var isLoadingMoreUsers: Bool = false
+    @Published var allUsersLoaded: Bool = false
     
     // MARK: - Dependencies
     private let getUsersUseCase: GetUsersUseCase
@@ -66,6 +84,7 @@ final class UserListViewModel: UserListViewModelType {
     private let deleteUserUseCase: DeleteUserUseCase
     private let searchUsersUseCase: SearchUsersUseCase
     private let loadImageUseCase: LoadImageUseCase
+    private let loadMoreUsersUseCase: LoadMoreUsersUseCase
     
     // MARK: - Private Properties
     private var lastRequestedCount: Int = Constants.defaultUserCount
@@ -84,19 +103,15 @@ final class UserListViewModel: UserListViewModelType {
         getSavedUsersUseCase: GetSavedUsersUseCase,
         deleteUserUseCase: DeleteUserUseCase,
         searchUsersUseCase: SearchUsersUseCase,
-        loadImageUseCase: LoadImageUseCase
+        loadImageUseCase: LoadImageUseCase,
+        loadMoreUsersUseCase: LoadMoreUsersUseCase
     ) {
         self.getUsersUseCase = getUsersUseCase
         self.getSavedUsersUseCase = getSavedUsersUseCase
         self.deleteUserUseCase = deleteUserUseCase
         self.searchUsersUseCase = searchUsersUseCase
         self.loadImageUseCase = loadImageUseCase
-        
-        // Load saved users first, correctly waiting for the asynchronous operation
-        Task { [weak self] in
-            guard let self = self else { return }
-            await loadSavedUsersAsync()
-        }
+        self.loadMoreUsersUseCase = loadMoreUsersUseCase
     }
     
     // MARK: - Factory Methods
@@ -104,26 +119,75 @@ final class UserListViewModel: UserListViewModelType {
         return UserDetailViewModel(user: user, loadImageUseCase: loadImageUseCase)
     }
     
-    // MARK: - Image Loading
-    func loadImage(from url: URL) async throws -> Image {
-        // Capturar el use case localmente para evitar data races
-        let useCase = self.loadImageUseCase
-        return try await useCase.execute(from: url)
+    // MARK: - Public Methods
+    
+    // Initial user loading
+    @MainActor
+    func loadInitialUsers() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // The GetUsersUseCase already implements the logic
+            // to first check cache and then API if necessary
+            let initialUsers = try await getUsersUseCase.execute(count: Constants.defaultUserCount)
+            
+            self.users = initialUsers
+            self.filteredUsers = initialUsers
+            self.hasLoadedUsers = true
+        } catch {
+            handleError(error)
+        }
+        
+        isLoading = false
     }
     
-    // MARK: - Test Helpers
-    func reset() {
-        users = []
-        filteredUsers = []
-        isLoading = false
-        errorMessage = nil
-        isNetworkError = false
-        searchText = ""
-        hasLoadedUsers = false
-        networkRetryAttempts = 0
+    // Additional loading for pagination
+    func loadMoreUsers(count: Int = Constants.defaultLoadCount) async {
+        // Don't load more if we're searching
+        if !searchText.isEmpty {
+            return
+        }
+        
         loadMoreTask?.cancel()
-        searchTask?.cancel()
+        
+        loadMoreTask = Task { [weak self] in
+            guard let self = self else { return }
+            await self.loadMoreUsersInternal(count: count)
+        }
+    }
+    
+    private func loadMoreUsersInternal(count: Int) async {
+        guard !isLoadingMoreUsers else { return }
+        
+        isLoadingMoreUsers = true
+        lastRequestedCount = count
+        
+        do {
+            // Use the specific use case for pagination
+            let newUsers = try await loadMoreUsersUseCase.execute(count: count)
+            
+            // Integrate new users, avoiding duplicates
+            let existingIDs = Set(self.users.map { $0.id })
+            let uniqueNewUsers = newUsers.filter { !existingIDs.contains($0.id) }
+            
+            if !uniqueNewUsers.isEmpty {
+                self.users.append(contentsOf: uniqueNewUsers)
+                self.hasLoadedUsers = true
+            }
+            
+            self.applyFilter()
+        } catch {
+            self.networkRetryAttempts += 1
+            self.handleError(error)
+        }
+        
         isLoadingMoreUsers = false
+    }
+    
+    // MARK: - Image Loading
+    func loadImage(from url: URL) async throws -> Image {
+        return try await loadImageUseCase.execute(from: url)
     }
     
     // MARK: - Private Methods
@@ -144,11 +208,12 @@ final class UserListViewModel: UserListViewModelType {
                     isLoading = true
                 }
                 
+                // Use the search use case
                 let results = try await searchUsersUseCase.execute(query: query)
                 
                 if !Task.isCancelled {
                     if query != searchText {
-                        // Resultados descartados
+                        // Results discarded
                     } else {
                         self.filteredUsers = results
                     }
@@ -200,24 +265,14 @@ final class UserListViewModel: UserListViewModelType {
         if let apiError = error as? APIError {
             return apiError == .networkError || 
                    apiError == .timeout || 
-                   apiError == .serverError(statusCode: 503) || 
+                   apiError == .serverError(statusCode: Constants.Network.serviceUnavailableStatusCode) || 
                    apiError == .unreachable
         }
         
         // Check URLError error codes
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
-            let networkErrorCodes: [Int] = [
-                NSURLErrorTimedOut,
-                NSURLErrorCannotFindHost,
-                NSURLErrorCannotConnectToHost,
-                NSURLErrorNetworkConnectionLost,
-                NSURLErrorDNSLookupFailed,
-                NSURLErrorNotConnectedToInternet,
-                NSURLErrorInternationalRoamingOff,
-                NSURLErrorCallIsActive
-            ]
-            return networkErrorCodes.contains(nsError.code)
+            return Constants.Network.networkErrorCodes.contains(nsError.code)
         }
         
         return false
@@ -232,78 +287,10 @@ final class UserListViewModel: UserListViewModelType {
             hasLoadedUsers = true
         } else {
             // Use the same simplified loading function
-            loadMoreUsers(count: lastRequestedCount)
-        }
-    }
-    
-    func loadMoreUsers(count: Int = 20) {
-        loadMoreTask?.cancel()
-        
-        loadMoreTask = Task { [weak self] in
-            guard let self = self else { return }
-            await loadMoreUsersAsync(count: count)
-        }
-    }
-    
-    private func loadMoreUsersAsync(count: Int = 40) async {
-        isLoading = true
-        isLoadingMoreUsers = true
-        errorMessage = nil
-        isNetworkError = false
-        lastRequestedCount = count
-        
-        do {
-            let newUsers = try await getUsersUseCase.execute(count: count)
-            
-            let existingIDs = Set(self.users.map { $0.id })
-            let uniqueNewUsers = newUsers.filter { !existingIDs.contains($0.id) }
-            
-            if !uniqueNewUsers.isEmpty {
-                self.users.append(contentsOf: uniqueNewUsers)
+            Task {
+                await loadMoreUsers(count: lastRequestedCount)
             }
-            
-            self.applyFilter()
-            self.hasLoadedUsers = true
-            
-        } catch {
-            self.networkRetryAttempts += 1
-            self.handleError(error)
         }
-        
-        isLoading = false
-        isLoadingMoreUsers = false
-    }
-    
-    func loadSavedUsers() {
-        Task { [weak self] in
-            guard let self = self else { return }
-            await loadSavedUsersAsync()
-        }
-    }
-    
-    private func loadSavedUsersAsync() async {
-        isLoading = true
-        errorMessage = nil
-        isNetworkError = false
-        
-        do {
-            let savedUsers = try await getSavedUsersUseCase.execute()
-            
-            self.users = savedUsers
-            self.applyFilter()
-            self.hasLoadedUsers = true
-            
-            if savedUsers.isEmpty {
-                await loadMoreUsersAsync(count: Constants.defaultUserCount)
-            }
-            
-        } catch {
-            self.handleError(error)
-            
-            await loadMoreUsersAsync(count: Constants.defaultUserCount)
-        }
-        
-        isLoading = false
     }
     
     func deleteUser(withID id: String) {
@@ -319,7 +306,6 @@ final class UserListViewModel: UserListViewModelType {
             
             self.users.removeAll { $0.id == id }
             self.applyFilter()
-            
         } catch {
             self.handleError(error)
         }

@@ -3,46 +3,94 @@ import Foundation
 
 @MainActor
 class SwiftDataStorage: UserStorage {
+    private enum Constants {
+        static let maxTransactionRetries: Int = 3
+        static let retryDelayNanoseconds: UInt64 = 500_000_000 // 0.5 seconds
+    }
+    
     private let modelContainer: ModelContainer
     
     init() throws {
         let schema = Schema([UserEntity.self])
         
+        // Basic configuration for SwiftData
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true
         )
         
+        // Create container with basic configuration
         self.modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
     
+    // Special constructor for tests
+    init(testModelContainer: ModelContainer) {
+        self.modelContainer = testModelContainer
+    }
+    
     func saveUsers(_ users: [User]) async throws {
-        let modelContext = modelContainer.mainContext
+        var retryCount = 0
+        var lastError: Error? = nil
+        
+        // Try to save with retries if there are transactional errors
+        while retryCount < Constants.maxTransactionRetries {
+            do {
+                try await performSaveUsers(users)
+                return // If successful, exit the function
+            } catch {
+                print("Error saving users (attempt \(retryCount + 1)): \(error)")
+                lastError = error
+                retryCount += 1
+                
+                if retryCount < Constants.maxTransactionRetries {
+                    // Wait a bit before retrying
+                    try await Task.sleep(nanoseconds: Constants.retryDelayNanoseconds)
+                }
+            }
+        }
+        
+        // If we get here, all attempts failed
+        if let error = lastError {
+            throw error
+        } else {
+            throw StorageError.unknown
+        }
+    }
+    
+    private func performSaveUsers(_ users: [User]) async throws {
+        // Use the transaction context directly
+        let transactionContext = ModelContext(modelContainer)
+        transactionContext.autosaveEnabled = false
         
         let userEntities = users.map { UserEntity.fromDomain(user: $0) }
         
+        // Fetch existing with the new context
         let descriptor = FetchDescriptor<UserEntity>()
-        let existingUsers = try modelContext.fetch(descriptor)
+        let existingUsers = try transactionContext.fetch(descriptor)
         let existingIDs = Set(existingUsers.map { $0.id })
         
         var insertCount = 0
         
         for entity in userEntities {
             if !existingIDs.contains(entity.id) {
-                modelContext.insert(entity)
+                transactionContext.insert(entity)
                 insertCount += 1
             }
         }
         
         if insertCount > 0 {
-            try modelContext.save()
+            // Explicitly save the transaction context
+            try transactionContext.save()
         }
     }
     
     func getUsers() async throws -> [User] {
         let modelContext = modelContainer.mainContext
-        let descriptor = FetchDescriptor<UserEntity>()
+        var descriptor = FetchDescriptor<UserEntity>()
+        
+        // Sort by order field to maintain consistency
+        descriptor.sortBy = [SortDescriptor(\.order, order: .forward)]
         
         let userEntities = try modelContext.fetch(descriptor)
         

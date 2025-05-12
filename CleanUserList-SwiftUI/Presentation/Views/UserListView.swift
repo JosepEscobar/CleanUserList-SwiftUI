@@ -13,9 +13,16 @@ struct UserListView: View {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 12
         static let topPadding: CGFloat = 8
-        static let loadMoreThreshold: Int = 5
-        static let defaultLoadCount: Int = 40
+        static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
+        static let listTopPadding: CGFloat = 16
+        static let mainStackSpacing: CGFloat = 0
+        static let loadingScale: CGFloat = 1.5
+        static let rowVerticalPadding: CGFloat = 4
+        static let rowTopInset: CGFloat = 8
+        static let rowBottomInset: CGFloat = 8
+        static let infiniteScrollTriggerHeight: CGFloat = 20
+        static let defaultBottomColor = Color.white
     }
     
     init(viewModel: UserListViewModel) {
@@ -25,21 +32,18 @@ struct UserListView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemGroupedBackground)
+                Constants.defaultBottomColor
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
+                VStack(spacing: Constants.mainStackSpacing) {
                     searchBar
                     mainContent
                 }
             }
         }
-        .onAppear {
-            viewModel.loadSavedUsers()
-        }
-        .onChange(of: viewModel.users.count) { oldCount, newCount in
-            if newCount > Constants.loadMoreThreshold {
-                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+        .task {
+            if !viewModel.hasLoadedUsers {
+                await viewModel.loadInitialUsers()
             }
         }
     }
@@ -53,11 +57,11 @@ struct UserListView: View {
     
     private var mainContent: some View {
         Group {
-            if viewModel.isLoading && viewModel.users.isEmpty {
+            if viewModel.isLoading && (!viewModel.hasLoadedUsers || viewModel.users.isEmpty) {
                 loadingView
             } else if let error = viewModel.errorMessage {
                 errorView(error: error)
-            } else if viewModel.isEmptyState {
+            } else if viewModel.isEmptyState && viewModel.hasLoadedUsers {
                 emptyStateView
             } else {
                 userList
@@ -67,7 +71,7 @@ struct UserListView: View {
     
     private var loadingView: some View {
         ProgressView()
-            .scaleEffect(1.5)
+            .scaleEffect(Constants.loadingScale)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
@@ -92,44 +96,67 @@ struct UserListView: View {
                 if !searchText.isEmpty {
                     searchText = ""
                 } else {
-                    viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    Task {
+                        await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    }
                 }
             }
         )
     }
     
     private var userList: some View {
-        ScrollView {
-            LazyVStack(spacing: Constants.verticalPadding) {
-                ForEach(viewModel.filteredUsers) { user in
-                    userRow(for: user)
+        List {
+            ForEach(viewModel.filteredUsers) { user in
+                NavigationLink(destination: UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))) {
+                    UserRowView(
+                        user: user,
+                        onDelete: { _ in
+                            // This callback is no longer needed as we use swipe-to-delete
+                        },
+                        viewModel: viewModel
+                    )
+                    .padding(.vertical, Constants.rowVerticalPadding)
                 }
-                
-                if viewModel.isLoadingMoreUsers {
-                    ProgressView()
-                        .padding()
+                .listRowInsets(EdgeInsets(
+                    top: Constants.rowTopInset, 
+                    leading: Constants.horizontalPadding, 
+                    bottom: Constants.rowBottomInset, 
+                    trailing: Constants.horizontalPadding
+                ))
+            }
+            .onDelete { indexSet in
+                for index in indexSet {
+                    let user = viewModel.filteredUsers[index]
+                    viewModel.deleteUser(withID: user.id)
                 }
             }
-            .padding(.horizontal, Constants.horizontalPadding)
-            .padding(.top, Constants.topPadding)
+            
+            if viewModel.isLoadingMoreUsers {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+                    .padding()
+            } else if searchText.isEmpty && !viewModel.allUsersLoaded {
+                // Invisible element to trigger loading on infinite scroll
+                Color.clear
+                    .frame(height: Constants.infiniteScrollTriggerHeight)
+                    .listRowSeparator(.hidden)
+                    .onAppear {
+                        if !viewModel.isLoadingMoreUsers {
+                            Task {
+                                await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                            }
+                        }
+                    }
+            }
         }
+        .listStyle(.plain)
+        .padding(.top, Constants.listTopPadding)
+        .background(Constants.defaultBottomColor)
         .refreshable {
             isRefreshing = true
-            viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+            await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
             isRefreshing = false
         }
-    }
-    
-    private func userRow(for user: User) -> some View {
-        NavigationLink(destination: UserDetailView(viewModel: viewModel.makeUserDetailViewModel(for: user))) {
-            UserRowView(
-                user: user,
-                onDelete: { _ in
-                    viewModel.deleteUser(withID: user.id)
-                },
-                viewModel: viewModel
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 } 

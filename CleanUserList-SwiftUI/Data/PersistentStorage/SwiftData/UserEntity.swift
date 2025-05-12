@@ -18,6 +18,9 @@ final class UserEntity {
     var city: String = ""
     var state: String = ""
     
+    // Field to maintain insertion order
+    var order: Int = 0
+    
     @Attribute(.externalStorage) 
     var registeredDate: Date = Date()
     
@@ -44,7 +47,8 @@ final class UserEntity {
         registeredDate: Date,
         largeImageURL: String,
         mediumImageURL: String,
-        thumbnailImageURL: String
+        thumbnailImageURL: String,
+        order: Int = 0
     ) {
         self.id = id
         self.name = name
@@ -60,6 +64,7 @@ final class UserEntity {
         self.largeImageURL = largeImageURL
         self.mediumImageURL = mediumImageURL
         self.thumbnailImageURL = thumbnailImageURL
+        self.order = order
     }
     
     init() {
@@ -80,11 +85,12 @@ final class UserEntity {
                 state: state
             ),
             registeredDate: registeredDate,
-            picture: Picture(
-                large: URL(string: largeImageURL)!,
-                medium: URL(string: mediumImageURL)!,
-                thumbnail: URL(string: thumbnailImageURL)!
-            )
+            picture: Picture.createSafe(
+                large: largeImageURL,
+                medium: mediumImageURL,
+                thumbnail: thumbnailImageURL
+            ),
+            order: order
         )
     }
     
@@ -103,7 +109,8 @@ final class UserEntity {
             registeredDate: user.registeredDate,
             largeImageURL: user.picture.large.absoluteString,
             mediumImageURL: user.picture.medium.absoluteString,
-            thumbnailImageURL: user.picture.thumbnail.absoluteString
+            thumbnailImageURL: user.picture.thumbnail.absoluteString,
+            order: user.order
         )
     }
 } 

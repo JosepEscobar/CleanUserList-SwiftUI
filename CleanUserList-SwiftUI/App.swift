@@ -7,17 +7,31 @@
 
 import SwiftUI
 import SwiftData
+import Kingfisher
 
 @main
 struct CleanUserList_SwiftUIApp: App {
     let dependencyContainer = DependencyContainer()
     
+    init() {
+        // Initialize the NetworkChecker to ensure network monitoring starts
+        _ = NetworkChecker.shared
+        
+        // Configure Kingfisher when the application starts
+        UserAsyncImageView.configureKingfisher()
+        
+        // Configure the global accent color
+        UINavigationBar.appearance().tintColor = UIColor.systemGray
+    }
+    
     var body: some Scene {
         WindowGroup {
-            // Vista principal sin LocalizedView envolvente
+            // Main view without a LocalizedView wrapper
             UserListView(viewModel: makeViewModel())
+                .accentColor(Color(UIColor.systemGray))
         }
-        .modelContainer(for: [UserEntity.self], inMemory: false)
+        // Basic modelContainer configuration
+        .modelContainer(for: [UserEntity.self])
     }
     
     // Method marked with @MainActor to initialize the ViewModel
@@ -45,7 +59,7 @@ class DependencyContainer {
     
     // API
     private lazy var apiClient: APIClient = {
-        return DefaultAPIClient()
+        return DefaultAPIClient(session: configuredSession)
     }()
     
     // Storage - Using only SwiftData
@@ -87,6 +101,11 @@ class DependencyContainer {
         return DefaultSearchUsersUseCase(repository: userRepository)
     }()
     
+    @MainActor
+    private lazy var loadMoreUsersUseCase: LoadMoreUsersUseCase = {
+        return DefaultLoadMoreUsersUseCase(repository: userRepository)
+    }()
+    
     private lazy var loadImageUseCase: LoadImageUseCase = {
         return DefaultLoadImageUseCase()
     }()
@@ -104,7 +123,8 @@ class DependencyContainer {
             getSavedUsersUseCase: getSavedUsersUseCase,
             deleteUserUseCase: deleteUserUseCase,
             searchUsersUseCase: searchUsersUseCase,
-            loadImageUseCase: loadImageUseCase
+            loadImageUseCase: loadImageUseCase,
+            loadMoreUsersUseCase: loadMoreUsersUseCase
         )
     }
     

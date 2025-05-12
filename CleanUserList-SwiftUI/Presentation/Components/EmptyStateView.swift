@@ -4,18 +4,24 @@ struct EmptyStateView: View {
     private enum Constants {
         static let largeIconSize: CGFloat = 50
         static let buttonCornerRadius: CGFloat = 8
+        static let verticalSpacing: CGFloat = 20
+        static let iconColor = Color.gray
+        static let backgroundColor = Color.blue
+        static let textColor = Color.white
+        static let secondaryTextColor = Color.gray
+        static let topBottomPadding: CGFloat = 0
     }
     
     let isSearching: Bool
     let onAction: () -> Void
     
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        VStack(spacing: Constants.verticalSpacing) {
+            Spacer(minLength: Constants.topBottomPadding)
             
             Image(systemName: isSearching ? "magnifyingglass" : "person.slash")
                 .font(.system(size: Constants.largeIconSize))
-                .foregroundColor(.gray)
+                .foregroundColor(Constants.iconColor)
             
             if !isSearching {
                 LocalizedText("no_users_available")
@@ -23,7 +29,7 @@ struct EmptyStateView: View {
                 
                 LocalizedText("try_loading_users")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(Constants.secondaryTextColor)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             } else {
@@ -32,7 +38,7 @@ struct EmptyStateView: View {
                 
                 LocalizedText("try_another_search")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(Constants.secondaryTextColor)
             }
             
             Button(action: onAction) {
@@ -41,12 +47,12 @@ struct EmptyStateView: View {
                     LocalizedText(isSearching ? "clear_search" : "load_users")
                 }
                 .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
+                .background(Constants.backgroundColor)
+                .foregroundColor(Constants.textColor)
                 .cornerRadius(Constants.buttonCornerRadius)
             }
             
-            Spacer()
+            Spacer(minLength: Constants.topBottomPadding)
         }
     }
 } 

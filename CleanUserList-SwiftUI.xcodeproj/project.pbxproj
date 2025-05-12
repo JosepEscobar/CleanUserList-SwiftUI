@@ -6,15 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48753DBC2DD1D32A00798921 /* Nimble in Frameworks */ = {isa = PBXBuildFile; productRef = 48753DBB2DD1D32A00798921 /* Nimble */; };
+		48CE55D22DD0B98F005689E7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 48CE55D12DD0B98F005689E7 /* Kingfisher */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		48E835332DCD30C20023E3E0 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 48E8351C2DCD30C10023E3E0 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 48E835232DCD30C10023E3E0;
-			remoteInfo = "CleanUserList-SwiftUI";
-		};
-		48E8353D2DCD30C20023E3E0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 48E8351C2DCD30C10023E3E0 /* Project object */;
 			proxyType = 1;
@@ -24,9 +22,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4891D4EC2DD1DDB100F64897 /* CleanUserList-SwiftUI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CleanUserList-SwiftUI.xctestplan"; sourceTree = "<group>"; };
 		48E835242DCD30C10023E3E0 /* CleanUserList-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CleanUserList-SwiftUI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		48E835322DCD30C20023E3E0 /* CleanUserList-SwiftUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "CleanUserList-SwiftUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		48E8353C2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "CleanUserList-SwiftUIUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -53,11 +51,6 @@
 			path = "CleanUserList-SwiftUITests";
 			sourceTree = "<group>";
 		};
-		48E8353F2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "CleanUserList-SwiftUIUITests";
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48CE55D22DD0B98F005689E7 /* Kingfisher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,13 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		48E835392DCD30C20023E3E0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				48753DBC2DD1D32A00798921 /* Nimble in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,9 +76,9 @@
 		48E8351B2DCD30C10023E3E0 = {
 			isa = PBXGroup;
 			children = (
+				4891D4EC2DD1DDB100F64897 /* CleanUserList-SwiftUI.xctestplan */,
 				48E835262DCD30C10023E3E0 /* CleanUserList-SwiftUI */,
 				48E835352DCD30C20023E3E0 /* CleanUserList-SwiftUITests */,
-				48E8353F2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests */,
 				48E835252DCD30C10023E3E0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -100,7 +88,6 @@
 			children = (
 				48E835242DCD30C10023E3E0 /* CleanUserList-SwiftUI.app */,
 				48E835322DCD30C20023E3E0 /* CleanUserList-SwiftUITests.xctest */,
-				48E8353C2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -125,6 +112,7 @@
 			);
 			name = "CleanUserList-SwiftUI";
 			packageProductDependencies = (
+				48CE55D12DD0B98F005689E7 /* Kingfisher */,
 			);
 			productName = "CleanUserList-SwiftUI";
 			productReference = 48E835242DCD30C10023E3E0 /* CleanUserList-SwiftUI.app */;
@@ -148,33 +136,11 @@
 			);
 			name = "CleanUserList-SwiftUITests";
 			packageProductDependencies = (
+				48753DBB2DD1D32A00798921 /* Nimble */,
 			);
 			productName = "CleanUserList-SwiftUITests";
 			productReference = 48E835322DCD30C20023E3E0 /* CleanUserList-SwiftUITests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		48E8353B2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 48E8354C2DCD30C20023E3E0 /* Build configuration list for PBXNativeTarget "CleanUserList-SwiftUIUITests" */;
-			buildPhases = (
-				48E835382DCD30C20023E3E0 /* Sources */,
-				48E835392DCD30C20023E3E0 /* Frameworks */,
-				48E8353A2DCD30C20023E3E0 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				48E8353E2DCD30C20023E3E0 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				48E8353F2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests */,
-			);
-			name = "CleanUserList-SwiftUIUITests";
-			packageProductDependencies = (
-			);
-			productName = "CleanUserList-SwiftUIUITests";
-			productReference = 48E8353C2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -193,10 +159,6 @@
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = 48E835232DCD30C10023E3E0;
 					};
-					48E8353B2DCD30C20023E3E0 = {
-						CreatedOnToolsVersion = 16.3;
-						TestTargetID = 48E835232DCD30C10023E3E0;
-					};
 				};
 			};
 			buildConfigurationList = 48E8351F2DCD30C10023E3E0 /* Build configuration list for PBXProject "CleanUserList-SwiftUI" */;
@@ -210,6 +172,10 @@
 			);
 			mainGroup = 48E8351B2DCD30C10023E3E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				48753DBA2DD1D32A00798921 /* XCRemoteSwiftPackageReference "Nimble" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 48E835252DCD30C10023E3E0 /* Products */;
 			projectDirPath = "";
@@ -217,7 +183,6 @@
 			targets = (
 				48E835232DCD30C10023E3E0 /* CleanUserList-SwiftUI */,
 				48E835312DCD30C20023E3E0 /* CleanUserList-SwiftUITests */,
-				48E8353B2DCD30C20023E3E0 /* CleanUserList-SwiftUIUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -231,13 +196,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		48E835302DCD30C20023E3E0 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		48E8353A2DCD30C20023E3E0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -261,13 +219,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		48E835382DCD30C20023E3E0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -275,11 +226,6 @@
 			isa = PBXTargetDependency;
 			target = 48E835232DCD30C10023E3E0 /* CleanUserList-SwiftUI */;
 			targetProxy = 48E835332DCD30C20023E3E0 /* PBXContainerItemProxy */;
-		};
-		48E8353E2DCD30C20023E3E0 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 48E835232DCD30C10023E3E0 /* CleanUserList-SwiftUI */;
-			targetProxy = 48E8353D2DCD30C20023E3E0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -528,50 +474,6 @@
 			};
 			name = Release;
 		};
-		48E8354D2DCD30C20023E3E0 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = DQZ7G5MLVC;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.josepescobar.CleanUserList-SwiftUIUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "CleanUserList-SwiftUI";
-				XROS_DEPLOYMENT_TARGET = 2.4;
-			};
-			name = Debug;
-		};
-		48E8354E2DCD30C20023E3E0 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = DQZ7G5MLVC;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.josepescobar.CleanUserList-SwiftUIUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "CleanUserList-SwiftUI";
-				XROS_DEPLOYMENT_TARGET = 2.4;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -602,16 +504,39 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		48E8354C2DCD30C20023E3E0 /* Build configuration list for PBXNativeTarget "CleanUserList-SwiftUIUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				48E8354D2DCD30C20023E3E0 /* Debug */,
-				48E8354E2DCD30C20023E3E0 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48753DBA2DD1D32A00798921 /* XCRemoteSwiftPackageReference "Nimble" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Quick/Nimble.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.3.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48753DBB2DD1D32A00798921 /* Nimble */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48753DBA2DD1D32A00798921 /* XCRemoteSwiftPackageReference "Nimble" */;
+			productName = Nimble;
+		};
+		48CE55D12DD0B98F005689E7 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48CE55D02DD0B98F005689E7 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 48E8351C2DCD30C10023E3E0 /* Project object */;
 }

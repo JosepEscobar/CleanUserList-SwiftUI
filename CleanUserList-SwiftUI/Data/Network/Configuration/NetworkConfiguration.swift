@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 struct NetworkConfiguration {
     private enum Constants {
@@ -11,7 +12,14 @@ struct NetworkConfiguration {
         enum Headers {
             static let accept = "application/json"
             static let contentType = "application/json"
-            static let userAgent = "CleanUserList-SwiftUI/1.0"
+            static let altSvc = ""
+            static let acceptKey = "Accept"
+            static let contentTypeKey = "Content-Type"
+            static let altSvcKey = "Alt-Svc"
+        }
+        
+        enum Network {
+            static let forcedProtocolClass: AnyClass = ForceHTTP11URLProtocol.self
         }
     }
     
@@ -25,13 +33,16 @@ struct NetworkConfiguration {
         configuration.timeoutIntervalForResource = Constants.timeoutIntervalForResource
         configuration.allowsCellularAccess = true
         configuration.httpMaximumConnectionsPerHost = Constants.maxConnectionsPerHost
-        configuration.waitsForConnectivity = true
+        configuration.waitsForConnectivity = false
         configuration.urlCache = cache
         configuration.httpAdditionalHeaders = [
-            "Accept": Constants.Headers.accept,
-            "Content-Type": Constants.Headers.contentType,
-            "User-Agent": Constants.Headers.userAgent
+            Constants.Headers.acceptKey: Constants.Headers.accept,
+            Constants.Headers.contentTypeKey: Constants.Headers.contentType,
+            Constants.Headers.altSvcKey: Constants.Headers.altSvc
         ]
+        
+        // Force the use of HTTP/1.1 using our custom URLProtocol
+        configuration.protocolClasses = [Constants.Network.forcedProtocolClass]
         
         return URLSession(configuration: configuration)
     }

@@ -1,6 +1,8 @@
 import XCTest
+import Nimble
 @testable import CleanUserList_SwiftUI
 
+@MainActor
 class UserRepositoryTests: XCTestCase {
     
     func testGetUsers() async throws {
@@ -21,9 +23,18 @@ class UserRepositoryTests: XCTestCase {
         let users = try await repository.getUsers(count: 1)
         
         // Then
-        XCTAssertEqual(users.count, 1)
-        XCTAssertEqual(users.first?.id, "123")
-        XCTAssertEqual(mockUserStorage.savedUsers?.count, 1)
+        expect(users).toNot(beEmpty(), description: "Users array should not be empty")
+        expect(users.count).to(equal(1), description: "Expected exactly one user")
+        expect(users.first).toNot(beNil(), description: "First user should not be nil")
+        
+        if let firstUser = users.first {
+            expect(firstUser.id).to(equal("123"), description: "User ID should match expected value")
+        }
+        
+        // Wait briefly to allow the background task that saves users to complete
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
+        expect(mockUserStorage.savedUsers?.count).to(equal(1), description: "One user should be saved in storage")
     }
     
     func testSaveUsers() async throws {
@@ -42,8 +53,8 @@ class UserRepositoryTests: XCTestCase {
         try await repository.saveUsers([user])
         
         // Then
-        XCTAssertEqual(mockUserStorage.savedUsers?.count, 1)
-        XCTAssertEqual(mockUserStorage.savedUsers?.first?.id, "123")
+        expect(mockUserStorage.savedUsers?.count).to(equal(1))
+        expect(mockUserStorage.savedUsers?.first?.id).to(equal("123"))
     }
     
     func testDeleteUser() async throws {
@@ -60,7 +71,7 @@ class UserRepositoryTests: XCTestCase {
         try await repository.deleteUser(withID: "123")
         
         // Then
-        XCTAssertEqual(mockUserStorage.deletedUserID, "123")
+        expect(mockUserStorage.deletedUserID).to(equal("123"))
     }
     
     func testSearchUsers() async throws {
@@ -81,8 +92,8 @@ class UserRepositoryTests: XCTestCase {
         let results = try await repository.searchUsers(query: "john")
         
         // Then
-        XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results.first?.id, "1")
+        expect(results.count).to(equal(1))
+        expect(results.first?.id).to(equal("1"))
     }
     
     func testGetSavedUsers() async throws {
@@ -102,8 +113,8 @@ class UserRepositoryTests: XCTestCase {
         let users = try await repository.getSavedUsers()
         
         // Then
-        XCTAssertEqual(users.count, 1)
-        XCTAssertEqual(users.first?.id, "123")
+        expect(users.count).to(equal(1))
+        expect(users.first?.id).to(equal("123"))
     }
     
     // MARK: - Helper Methods
@@ -163,6 +174,7 @@ class UserRepositoryTests: XCTestCase {
 
 // MARK: - Mocks
 
+@MainActor
 class MockAPIClient: APIClient {
     var getUsersResult: UserResponse?
     var getUsersError: Error?
@@ -175,6 +187,23 @@ class MockAPIClient: APIClient {
             return result
         }
         throw NSError(domain: "Test", code: -1)
+    }
+    
+    func getUsersWithRetry(count: Int) async throws -> UserResponse {
+        // In the mock, we simply delegate to the normal method without retries
+        return try await getUsers(count: count)
+    }
+    
+    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+        if let error = getUsersError {
+            throw error
+        }
+        
+        if T.self == UserResponse.self, let result = getUsersResult as? T {
+            return result
+        }
+        
+        throw NSError(domain: "Test", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unexpected request type: \(T.self)"])
     }
 }
 

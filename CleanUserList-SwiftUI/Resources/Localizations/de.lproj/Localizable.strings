@@ -23,4 +23,7 @@
 "registration_date" = "Registrierungsdatum";
 
 // MARK: - Language Selector
-"select_language" = "Sprache auswählen"; 
+"select_language" = "Sprache auswählen";
+
+// MARK: - Image Loading
+"error_loading_image" = "Fehler beim Laden des Bildes"; 

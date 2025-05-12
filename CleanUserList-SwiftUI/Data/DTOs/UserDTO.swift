@@ -29,42 +29,12 @@ struct UserDTO: Decodable {
                 state: location.state
             ),
             registeredDate: registered.date,
-            picture: Picture(
-                large: URL(string: picture.large)!,
-                medium: URL(string: picture.medium)!,
-                thumbnail: URL(string: picture.thumbnail)!
-            )
+            picture: Picture.createSafe(
+                large: picture.large,
+                medium: picture.medium,
+                thumbnail: picture.thumbnail
+            ),
+            order: 0 // By default, order will be assigned later
         )
     }
 }
-
-struct NameDTO: Decodable {
-    let title: String
-    let first: String
-    let last: String
-}
-
-struct LocationDTO: Decodable {
-    let street: StreetDTO
-    let city: String
-    let state: String
-}
-
-struct StreetDTO: Decodable {
-    let number: Int
-    let name: String
-}
-
-struct LoginDTO: Decodable {
-    let uuid: String
-}
-
-struct RegisteredDTO: Decodable {
-    let date: Date
-}
-
-struct PictureDTO: Decodable {
-    let large: String
-    let medium: String
-    let thumbnail: String
-} 

@@ -73,6 +73,7 @@ struct UserRowView_Previews: PreviewProvider {
 
 @MainActor
 private class MockUserListViewModel: UserListViewModelType {
+    var allUsersLoaded: Bool = true
     var users: [User] = []
     var filteredUsers: [User] = []
     var isLoading: Bool = false
@@ -101,6 +102,14 @@ private class MockUserListViewModel: UserListViewModelType {
     
     func handleLanguageChange() {
         // No-op for preview
+    }
+    
+    func loadInitialUsers() async {
+        return
+    }
+    
+    func shouldLoadMore(currentIndex: Int) -> Bool {
+        return false
     }
 }
 #endif 
