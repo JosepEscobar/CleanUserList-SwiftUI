@@ -33,7 +33,8 @@ struct UserDTO: Decodable {
                 large: picture.large,
                 medium: picture.medium,
                 thumbnail: picture.thumbnail
-            )
+            ),
+            order: 0 // Por defecto, el orden se asignará más tarde
         )
     }
 }

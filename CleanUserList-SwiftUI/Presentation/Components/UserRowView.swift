@@ -103,5 +103,13 @@ private class MockUserListViewModel: UserListViewModelType {
     func handleLanguageChange() {
         // No-op for preview
     }
+    
+    func loadInitialUsers() async {
+        return
+    }
+    
+    func shouldLoadMore(currentIndex: Int) -> Bool {
+        return false
+    }
 }
 #endif 

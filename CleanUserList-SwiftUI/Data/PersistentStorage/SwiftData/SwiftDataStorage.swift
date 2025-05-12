@@ -89,8 +89,8 @@ class SwiftDataStorage: UserStorage {
         let modelContext = modelContainer.mainContext
         var descriptor = FetchDescriptor<UserEntity>()
         
-        // Add sorting for consistency
-        descriptor.sortBy = [SortDescriptor(\.registeredDate, order: .forward)]
+        // Ordenar por el campo order para mantener la consistencia
+        descriptor.sortBy = [SortDescriptor(\.order, order: .forward)]
         
         let userEntities = try modelContext.fetch(descriptor)
         

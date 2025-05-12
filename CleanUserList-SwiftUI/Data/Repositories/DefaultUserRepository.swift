@@ -7,6 +7,7 @@ class DefaultUserRepository: UserRepository {
         static let minUserCountForDirectAPILoad: Int = 20
         static let oneSecondInNanoseconds: UInt64 = 1_000_000_000
         static let userCountThresholdRatio: Int = 2 // divisor for sufficient users count (count/2)
+        static let loadThreshold: Int = 8 // Cuántos elementos antes del final para cargar más
     }
     
     private let apiClient: APIClient
@@ -14,50 +15,70 @@ class DefaultUserRepository: UserRepository {
     private var lastRequestedCount: Int = 0
     private var retryCount: Int = 0
     private var isFirstLoad: Bool = true
+    private var cachedUsers: [User] = []
+    private var backgroundUpdateTask: Task<Void, Never>? = nil
     
     init(apiClient: APIClient, userStorage: UserStorage) {
         self.apiClient = apiClient
         self.userStorage = userStorage
     }
     
+    // Método principal para carga inicial
     func getUsers(count: Int) async throws -> [User] {
         self.lastRequestedCount = count
         
-        do {
-            // If it's the first load and more than 20 users are requested, load directly from the API
-            if isFirstLoad && count >= Constants.minUserCountForDirectAPILoad {
-                isFirstLoad = false
-                // Try to load directly from the API for faster initial response
-                return try await fetchAndStoreMoreUsers(count: count)
+        // Primero verificamos si tenemos datos en memoria
+        if !cachedUsers.isEmpty && cachedUsers.count >= count / Constants.userCountThresholdRatio {
+            // Si tenemos datos en memoria suficientes, los devolvemos inmediatamente
+            // y actualizamos en segundo plano
+            startBackgroundUpdate(count: count)
+            return cachedUsers
+        }
+        
+        // Si no hay suficientes en memoria, verificamos SwiftData
+        let savedUsers = try await getSavedUsers()
+        
+        if !savedUsers.isEmpty && savedUsers.count >= count / Constants.userCountThresholdRatio {
+            // Si tenemos suficientes en SwiftData, los devolvemos y actualizamos en memoria
+            self.cachedUsers = savedUsers
+            // Actualizamos en segundo plano
+            startBackgroundUpdate(count: count)
+            return savedUsers
+        }
+        
+        // Si no hay suficientes datos en caché, cargamos de la API
+        isFirstLoad = false
+        let newUsers = try await fetchAndStoreMoreUsers(count: count)
+        return newUsers
+    }
+    
+    // Método para paginación - siempre carga desde la API
+    func loadMoreUsers(count: Int) async throws -> [User] {
+        // Siempre cargamos desde la API para paginación
+        let newUsers = try await fetchAndStoreMoreUsers(count: count)
+        return newUsers
+    }
+    
+    // Método para verificar si debemos cargar más contenido (para UI)
+    func shouldLoadMore(currentIndex: Int, totalCount: Int) -> Bool {
+        let threshold = totalCount - Constants.loadThreshold
+        return currentIndex >= threshold
+    }
+    
+    // Inicia una actualización en segundo plano sin bloquear
+    private func startBackgroundUpdate(count: Int) {
+        // Cancelar tarea anterior si existe
+        backgroundUpdateTask?.cancel()
+        
+        backgroundUpdateTask = Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                // No esperamos el resultado ya que es background
+                _ = try await fetchAndStoreMoreUsers(count: count)
+            } catch {
+                // Solo registramos el error sin propagarlo al usuario
+                print("Error en actualización en segundo plano: \(error)")
             }
-            
-            // For normal loads, first check if we have saved users
-            let savedUsers = try await getSavedUsers()
-            
-            // If there are saved users and they are enough, return them immediately
-            // and update in the background
-            if !savedUsers.isEmpty && savedUsers.count >= count / Constants.userCountThresholdRatio {
-                // Update in the background only if it's not the first load
-                Task {
-                    do {
-                        _ = try await fetchAndStoreMoreUsers(count: count)
-                    } catch {
-                        print("Error updating users in the background: \(error)")
-                    }
-                }
-                return savedUsers
-            }
-            
-            // If there are not enough users or we need to load more
-            isFirstLoad = false
-            return try await fetchAndStoreMoreUsers(count: count)
-        } catch {
-            // If there's an error but we have saved users, return them
-            let savedUsers = try? await getSavedUsers()
-            if let users = savedUsers, !users.isEmpty {
-                return users
-            }
-            throw error
         }
     }
     
@@ -65,15 +86,49 @@ class DefaultUserRepository: UserRepository {
         do {
             // Load with reduced timeout for the first load for better reactivity
             let response = try await apiClient.getUsersWithRetry(count: count)
-            let newUsers = response.results.map { $0.toDomain() }
             
-            // Save users in a separate task to avoid blocking the UI
+            // Obtener el orden máximo actual de los usuarios
+            let savedUsers = try? await getSavedUsers()
+            let maxOrder = savedUsers?.map { $0.order }.max() ?? -1
+            
+            // Asignar orden secuencial a los nuevos usuarios preservando su orden
+            var newUsers = [User]()
+            for (index, userDTO) in response.results.enumerated() {
+                // Convertir a dominio pero manteniendo el orden
+                var user = userDTO.toDomain()
+                // Recreamos el usuario para asignarle un orden
+                user = User(
+                    id: user.id,
+                    name: user.name,
+                    surname: user.surname,
+                    fullName: user.fullName,
+                    email: user.email,
+                    phone: user.phone,
+                    gender: user.gender,
+                    location: user.location,
+                    registeredDate: user.registeredDate,
+                    picture: user.picture,
+                    order: maxOrder + 1 + index // Asignamos orden consecutivo
+                )
+                newUsers.append(user)
+            }
+            
+            // Actualizar la caché en memoria
             if !newUsers.isEmpty {
-                Task {
-                    do {
-                        try await saveUsers(newUsers)
-                    } catch {
-                        print("Error saving users: \(error)")
+                // Añadir solo usuarios únicos a la caché
+                let existingIDs = Set(self.cachedUsers.map { $0.id })
+                let uniqueNewUsers = newUsers.filter { !existingIDs.contains($0.id) }
+                
+                if !uniqueNewUsers.isEmpty {
+                    self.cachedUsers.append(contentsOf: uniqueNewUsers)
+                    
+                    // Guardar en SwiftData en segundo plano
+                    Task {
+                        do {
+                            try await saveUsers(uniqueNewUsers)
+                        } catch {
+                            print("Error saving users: \(error)")
+                        }
                     }
                 }
             }
@@ -104,9 +159,25 @@ class DefaultUserRepository: UserRepository {
     
     func deleteUser(withID id: String) async throws {
         try await userStorage.deleteUser(withID: id)
+        // También eliminar de la caché en memoria
+        cachedUsers.removeAll { $0.id == id }
     }
     
     func searchUsers(query: String) async throws -> [User] {
+        // Primero intentamos buscar en la caché en memoria
+        if !cachedUsers.isEmpty {
+            let lowercasedQuery = query.lowercased()
+            let results = cachedUsers.filter { user in
+                user.fullName.lowercased().contains(lowercasedQuery) ||
+                user.email.lowercased().contains(lowercasedQuery)
+            }
+            
+            if !results.isEmpty {
+                return results
+            }
+        }
+        
+        // Si no hay resultados en memoria, buscamos en SwiftData
         let users = try await getSavedUsers()
         
         let lowercasedQuery = query.lowercased()

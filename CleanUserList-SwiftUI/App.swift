@@ -101,6 +101,11 @@ class DependencyContainer {
         return DefaultSearchUsersUseCase(repository: userRepository)
     }()
     
+    @MainActor
+    private lazy var loadMoreUsersUseCase: LoadMoreUsersUseCase = {
+        return DefaultLoadMoreUsersUseCase(repository: userRepository)
+    }()
+    
     private lazy var loadImageUseCase: LoadImageUseCase = {
         return DefaultLoadImageUseCase()
     }()
@@ -118,7 +123,8 @@ class DependencyContainer {
             getSavedUsersUseCase: getSavedUsersUseCase,
             deleteUserUseCase: deleteUserUseCase,
             searchUsersUseCase: searchUsersUseCase,
-            loadImageUseCase: loadImageUseCase
+            loadImageUseCase: loadImageUseCase,
+            loadMoreUsersUseCase: loadMoreUsersUseCase
         )
     }
     

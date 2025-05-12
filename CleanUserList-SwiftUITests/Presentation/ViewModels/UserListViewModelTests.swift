@@ -12,6 +12,7 @@ class UserListViewModelTests: XCTestCase {
     private var mockDeleteUserUseCase: MockDeleteUserUseCase!
     private var mockSearchUsersUseCase: MockSearchUsersUseCase!
     private var mockLoadImageUseCase: MockLoadImageUseCase!
+    private var mockLoadMoreUsersUseCase: MockLoadMoreUsersUseCase!
     private var viewModel: UserListViewModel!
     
     override func setUp() {
@@ -21,13 +22,15 @@ class UserListViewModelTests: XCTestCase {
         mockDeleteUserUseCase = MockDeleteUserUseCase()
         mockSearchUsersUseCase = MockSearchUsersUseCase()
         mockLoadImageUseCase = MockLoadImageUseCase()
+        mockLoadMoreUsersUseCase = MockLoadMoreUsersUseCase()
         
         viewModel = UserListViewModel(
             getUsersUseCase: mockGetUsersUseCase,
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            loadImageUseCase: mockLoadImageUseCase
+            loadImageUseCase: mockLoadImageUseCase,
+            loadMoreUsersUseCase: mockLoadMoreUsersUseCase
         )
     }
     
@@ -37,6 +40,7 @@ class UserListViewModelTests: XCTestCase {
         mockDeleteUserUseCase = nil
         mockSearchUsersUseCase = nil
         mockLoadImageUseCase = nil
+        mockLoadMoreUsersUseCase = nil
         viewModel = nil
         super.tearDown()
     }
@@ -88,67 +92,49 @@ class UserListViewModelTests: XCTestCase {
         // Given
         // Reset the mock counter
         mockGetSavedUsersUseCase.executeCallCount = 0
+        mockGetUsersUseCase.executeCallCount = 0
         
         let users = [User.mock(id: "1")]
-        mockGetSavedUsersUseCase.usersToReturn = users
+        mockGetUsersUseCase.usersToReturn = users
         
         // When
-        viewModel.loadSavedUsers()
+        await viewModel.loadInitialUsers()
         
         // Then
-        // Use expectAsync to wait until users are loaded
-        await expectAsync(
-            { self.viewModel.hasLoadedUsers },
-            to: beTrue(),
-            timeout: .seconds(2),
-            pollInterval: .milliseconds(100)
-        )
-        
         await awaitExpectation {
             expect(self.viewModel.users.count).to(equal(1))
             expect(self.viewModel.filteredUsers.count).to(equal(1))
-            // The real behavior makes 2 calls to the use case
-            expect(self.mockGetSavedUsersUseCase.executeCallCount).to(equal(1))
+            expect(self.viewModel.hasLoadedUsers).to(beTrue())
+            expect(self.mockGetUsersUseCase.executeCallCount).to(equal(1))
         }
     }
     
     func testLoadSavedUsersHandlesError() async {
         // Given
         let error = NSError(domain: "test", code: 404, userInfo: nil)
-        mockGetSavedUsersUseCase.errorToThrow = error
-        mockGetUsersUseCase.usersToReturn = [User.mock()]
+        mockGetUsersUseCase.errorToThrow = error
         
         // When
-        viewModel.loadSavedUsers()
-        
-        // Wait for the entire operation and mock calls to complete
-        await expectAsync(
-            { self.mockGetUsersUseCase.executeCallCount > 0 && self.viewModel.hasLoadedUsers },
-            to: beTrue(),
-            timeout: .seconds(2),
-            pollInterval: .milliseconds(100)
-        )
+        await viewModel.loadInitialUsers()
         
         // Then
         await awaitExpectation {
-            // Verify that getSavedUsersUseCase was called
-            expect(self.mockGetSavedUsersUseCase.executeCallCount).to(equal(2))
-            
-            // The real behavior requires 2 calls to getUsersUseCase
-            expect(self.mockGetUsersUseCase.executeCallCount).to(equal(2))
+            expect(self.mockGetUsersUseCase.executeCallCount).to(equal(1))
+            expect(self.viewModel.errorMessage).toNot(beNil())
+            expect(self.viewModel.isLoading).to(beFalse())
         }
     }
     
     func testLoadMoreUsers() async {
         // Given
         // Reset the mock counter
-        mockGetUsersUseCase.executeCallCount = 0
+        mockLoadMoreUsersUseCase.executeCallCount = 0
         
         let initialUsers = [User.mock(id: "1")]
         let newUsers = [User.mock(id: "2")]
         viewModel.users = initialUsers
         viewModel.filteredUsers = initialUsers
-        mockGetUsersUseCase.usersToReturn = newUsers
+        mockLoadMoreUsersUseCase.usersToReturn = newUsers
         
         // When
         viewModel.loadMoreUsers(count: 10)
@@ -165,21 +151,21 @@ class UserListViewModelTests: XCTestCase {
         await awaitExpectation {
             expect(self.viewModel.users.count).to(equal(2))
             expect(self.viewModel.filteredUsers.count).to(equal(2))
-            expect(self.mockGetUsersUseCase.executeCallCount).to(equal(1))
-            expect(self.mockGetUsersUseCase.lastRequestedCount).to(equal(10))
+            expect(self.mockLoadMoreUsersUseCase.executeCallCount).to(equal(1))
+            expect(self.mockLoadMoreUsersUseCase.lastRequestedCount).to(equal(10))
         }
     }
     
     func testLoadMoreUsersAddsOnlyUniqueUsers() async {
         // Given
         // Reset the mock counter
-        mockGetUsersUseCase.executeCallCount = 0
+        mockLoadMoreUsersUseCase.executeCallCount = 0
         
         let existingUsers = [User.mock(id: "1"), User.mock(id: "2")]
         let newUsers = [User.mock(id: "2"), User.mock(id: "3")] // "2" is a duplicate
         viewModel.users = existingUsers
         viewModel.filteredUsers = existingUsers
-        mockGetUsersUseCase.usersToReturn = newUsers
+        mockLoadMoreUsersUseCase.usersToReturn = newUsers
         
         // When
         viewModel.loadMoreUsers(count: 10)
@@ -291,14 +277,16 @@ class UserListViewModelTests: XCTestCase {
             getSavedUsersUseCase: GetSavedUsersUseCase,
             deleteUserUseCase: DeleteUserUseCase,
             searchUsersUseCase: SearchUsersUseCase,
-            loadImageUseCase: LoadImageUseCase
+            loadImageUseCase: LoadImageUseCase,
+            loadMoreUsersUseCase: LoadMoreUsersUseCase
         ) {
             self.viewModel = UserListViewModel(
                 getUsersUseCase: getUsersUseCase,
                 getSavedUsersUseCase: getSavedUsersUseCase,
                 deleteUserUseCase: deleteUserUseCase,
                 searchUsersUseCase: searchUsersUseCase,
-                loadImageUseCase: loadImageUseCase
+                loadImageUseCase: loadImageUseCase,
+                loadMoreUsersUseCase: loadMoreUsersUseCase
             )
         }
         
@@ -351,7 +339,8 @@ class UserListViewModelTests: XCTestCase {
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            loadImageUseCase: mockLoadImageUseCase
+            loadImageUseCase: mockLoadImageUseCase,
+            loadMoreUsersUseCase: mockLoadMoreUsersUseCase
         )
         testableViewModel.retryAttemptsAccessible = 0
         
@@ -369,7 +358,8 @@ class UserListViewModelTests: XCTestCase {
             getSavedUsersUseCase: mockGetSavedUsersUseCase,
             deleteUserUseCase: mockDeleteUserUseCase,
             searchUsersUseCase: mockSearchUsersUseCase,
-            loadImageUseCase: mockLoadImageUseCase
+            loadImageUseCase: mockLoadImageUseCase,
+            loadMoreUsersUseCase: mockLoadMoreUsersUseCase
         )
         testableViewModel.retryAttemptsAccessible = testableViewModel.maxRetryAttempts
         
@@ -494,5 +484,23 @@ class MockLoadImageUseCase: LoadImageUseCase {
         }
         
         return imageToReturn
+    }
+}
+
+class MockLoadMoreUsersUseCase: LoadMoreUsersUseCase {
+    var executeCallCount = 0
+    var lastRequestedCount = 0
+    var usersToReturn: [User] = []
+    var errorToThrow: Error?
+    
+    func execute(count: Int) async throws -> [User] {
+        executeCallCount += 1
+        lastRequestedCount = count
+        
+        if let error = errorToThrow {
+            throw error
+        }
+        
+        return usersToReturn
     }
 } 

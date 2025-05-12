@@ -13,7 +13,6 @@ struct UserListView: View {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 12
         static let topPadding: CGFloat = 8
-        static let loadMoreThreshold: Int = 8
         static let defaultLoadCount: Int = 20
         static let searchDelay: TimeInterval = 0.5
         static let listTopPadding: CGFloat = 16
@@ -35,8 +34,10 @@ struct UserListView: View {
                 }
             }
         }
-        .onAppear {
-            viewModel.loadSavedUsers()
+        .task {
+            if !viewModel.hasLoadedUsers {
+                await viewModel.loadInitialUsers()
+            }
         }
     }
     
@@ -88,7 +89,9 @@ struct UserListView: View {
                 if !searchText.isEmpty {
                     searchText = ""
                 } else {
-                    viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    Task {
+                        await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                    }
                 }
             }
         )
@@ -113,22 +116,6 @@ struct UserListView: View {
                     bottom: 8, 
                     trailing: Constants.horizontalPadding
                 ))
-                .onAppear {
-                    // Check if we're approaching the end of the list, not just the last item
-                    // Start loading more when we're a few items away from the end
-                    guard searchText.isEmpty else { return }
-                    
-                    let indexOfUser = viewModel.filteredUsers.firstIndex(where: { $0.id == user.id }) ?? 0
-                    let threshold = viewModel.filteredUsers.count - Constants.loadMoreThreshold
-                    
-                    if indexOfUser >= threshold {
-                        Task {
-                            await MainActor.run {
-                                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
-                            }
-                        }
-                    }
-                }
             }
             .onDelete { indexSet in
                 for index in indexSet {
@@ -142,18 +129,16 @@ struct UserListView: View {
                     .frame(maxWidth: .infinity)
                     .listRowSeparator(.hidden)
                     .padding()
-            } else {
-                // Load more trigger element at bottom of list
-                Color.clear
-                    .frame(height: 40)
-                    .listRowSeparator(.hidden)
-                    .onAppear {
+            } else if searchText.isEmpty {
+                // Solo mostrar elemento de carga en modo lista normal (no búsqueda)
+                LoadMoreButton {
+                    if !viewModel.isLoadingMoreUsers {
                         Task {
-                            await MainActor.run {
-                                viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
-                            }
+                            await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
                         }
                     }
+                }
+                .listRowSeparator(.hidden)
             }
         }
         .listStyle(.plain)
@@ -161,8 +146,27 @@ struct UserListView: View {
         .background(Color.white)
         .refreshable {
             isRefreshing = true
-            viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+            await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
             isRefreshing = false
         }
+    }
+}
+
+// Componente simple para cargar más datos al final de la lista
+struct LoadMoreButton: View {
+    var action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Spacer()
+                Text("Cargar más")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.blue)
+                Spacer()
+            }
+            .padding()
+        }
+        .buttonStyle(.plain)
     }
 } 
