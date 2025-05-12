@@ -41,27 +41,3 @@ public struct User: Identifiable, Equatable, Sendable {
         return lhs.id == rhs.id
     }
 }
-
-public struct Location: Equatable, Sendable {
-    public let street: String
-    public let city: String
-    public let state: String
-    
-    public init(street: String, city: String, state: String) {
-        self.street = street
-        self.city = city
-        self.state = state
-    }
-}
-
-public struct Picture: Equatable, Sendable {
-    public let large: URL
-    public let medium: URL
-    public let thumbnail: URL
-    
-    public init(large: URL, medium: URL, thumbnail: URL) {
-        self.large = large
-        self.medium = medium
-        self.thumbnail = thumbnail
-    }
-} 

@@ -18,10 +18,10 @@ extension User {
             gender: "male",
             location: Location(street: "Test St", city: "Test City", state: "TS"),
             registeredDate: Date(),
-            picture: Picture(
-                large: URL(string: "https://example.com/large.jpg")!,
-                medium: URL(string: "https://example.com/medium.jpg")!,
-                thumbnail: URL(string: "https://example.com/thumbnail.jpg")!
+            picture: Picture.createSafe(
+                large: "https://example.com/large.jpg",
+                medium: "https://example.com/medium.jpg",
+                thumbnail: "https://example.com/thumbnail.jpg"
             )
         )
     }

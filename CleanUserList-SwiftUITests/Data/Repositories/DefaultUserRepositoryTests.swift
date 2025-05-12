@@ -216,7 +216,11 @@ extension DefaultUserRepositoryTests {
             }
             
             if T.self == UserResponse.self {
-                return getUsersResponse as! T
+                if let response = getUsersResponse as? T {
+                    return response
+                } else {
+                    throw APIError.unknown("Could not convert getUsersResponse to requested type \(T.self)")
+                }
             }
             
             fatalError("Unexpected request for type \(T.self)")

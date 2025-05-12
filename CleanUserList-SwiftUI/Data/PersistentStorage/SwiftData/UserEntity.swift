@@ -80,10 +80,10 @@ final class UserEntity {
                 state: state
             ),
             registeredDate: registeredDate,
-            picture: Picture(
-                large: URL(string: largeImageURL)!,
-                medium: URL(string: mediumImageURL)!,
-                thumbnail: URL(string: thumbnailImageURL)!
+            picture: Picture.createSafe(
+                large: largeImageURL,
+                medium: mediumImageURL,
+                thumbnail: thumbnailImageURL
             )
         )
     }
