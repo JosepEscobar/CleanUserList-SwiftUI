@@ -24,7 +24,7 @@ class SwiftDataStorage: UserStorage {
         self.modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
     
-    // Constructor especial para pruebas
+    // Special constructor for tests
     init(testModelContainer: ModelContainer) {
         self.modelContainer = testModelContainer
     }
@@ -89,7 +89,7 @@ class SwiftDataStorage: UserStorage {
         let modelContext = modelContainer.mainContext
         var descriptor = FetchDescriptor<UserEntity>()
         
-        // Ordenar por el campo order para mantener la consistencia
+        // Sort by order field to maintain consistency
         descriptor.sortBy = [SortDescriptor(\.order, order: .forward)]
         
         let userEntities = try modelContext.fetch(descriptor)

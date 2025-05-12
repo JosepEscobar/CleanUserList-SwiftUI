@@ -68,5 +68,7 @@ extension DeleteUserUseCaseTests {
         func saveUsers(_ users: [User]) async throws {}
         func searchUsers(query: String) async throws -> [User] { return [] }
         func getSavedUsers() async throws -> [User] { return [] }
+        func loadMoreUsers(count: Int) async throws -> [User] { return [] }
+        func shouldLoadMore(currentIndex: Int, totalCount: Int) -> Bool { return false }
     }
 } 

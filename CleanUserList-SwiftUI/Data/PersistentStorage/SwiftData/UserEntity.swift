@@ -18,7 +18,7 @@ final class UserEntity {
     var city: String = ""
     var state: String = ""
     
-    // Campo para mantener el orden de inserción
+    // Field to maintain insertion order
     var order: Int = 0
     
     @Attribute(.externalStorage) 

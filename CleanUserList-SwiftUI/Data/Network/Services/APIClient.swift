@@ -1,9 +1,7 @@
 import Foundation
 import Network
 
-// No necesitamos importar estos tipos ya que están en el mismo módulo
-// import struct CleanUserList_SwiftUI.APIEndpoint
-// import enum CleanUserList_SwiftUI.APIEndpoints
+
 
 @MainActor
 protocol APIClient {

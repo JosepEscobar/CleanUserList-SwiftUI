@@ -76,7 +76,7 @@ class DefaultUserRepositoryTests: XCTestCase {
         // Wait for the background task to complete
         try await Task.sleep(nanoseconds: 100_000_000)
         
-        // Usando nuestras extensiones para expectativas asíncronas
+        // Using our extensions for async expectations
         await expectAsync({ result.count }, toEqual: testUsers.count)
         await expectAsync({ self.mockStorage.saveUsersCallCount }, toEqual: 1)
         await expectAsync({ self.mockStorage.lastSavedUsers.count }, toEqual: testUsers.count)
@@ -104,7 +104,7 @@ class DefaultUserRepositoryTests: XCTestCase {
         mockAPIClient.errorToThrow = error
         mockStorage.errorToThrow = error
         
-        // When/Then - Usando la extensión para expectativas asíncronas con errores
+        // When/Then - Using our extension for async expectations with errors
         await expectAsync({
             try await self.repository.getUsers(count: 10)
         }, toThrow: error)
@@ -124,8 +124,8 @@ class DefaultUserRepositoryTests: XCTestCase {
         // When
         let result = try await repository.searchUsers(query: "doe")
         
-        // Then - Usando nuestras extensiones para expectativas asíncronas
-        // Combinando múltiples expectativas en una única verificación
+        // Then - Using our extensions for async expectations
+        // Combining multiple expectations in a single verification
         await awaitExpectation {
             expect(self.mockStorage.getUsersCallCount).to(equal(1))
             expect(result.count).to(equal(2))
@@ -157,7 +157,7 @@ class DefaultUserRepositoryTests: XCTestCase {
         }
     }
     
-    // Helper para crear un UserDTO a partir de un User
+    // Helper to create a UserDTO from a User
     private func createUserDTOFromUser(_ user: User) -> UserDTO {
         return UserDTO(
             gender: user.gender,

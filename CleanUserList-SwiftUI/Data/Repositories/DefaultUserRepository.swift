@@ -7,7 +7,7 @@ class DefaultUserRepository: UserRepository {
         static let minUserCountForDirectAPILoad: Int = 20
         static let oneSecondInNanoseconds: UInt64 = 1_000_000_000
         static let userCountThresholdRatio: Int = 2 // divisor for sufficient users count (count/2)
-        static let loadThreshold: Int = 8 // Cuántos elementos antes del final para cargar más
+        static let loadThreshold: Int = 8 // How many items before the end to load more
     }
     
     private let apiClient: APIClient
@@ -23,61 +23,61 @@ class DefaultUserRepository: UserRepository {
         self.userStorage = userStorage
     }
     
-    // Método principal para carga inicial
+    // Main method for initial loading
     func getUsers(count: Int) async throws -> [User] {
         self.lastRequestedCount = count
         
-        // Primero verificamos si tenemos datos en memoria
+        // First check if we have data in memory
         if !cachedUsers.isEmpty && cachedUsers.count >= count / Constants.userCountThresholdRatio {
-            // Si tenemos datos en memoria suficientes, los devolvemos inmediatamente
-            // y actualizamos en segundo plano
+            // If we have enough data in memory, return it immediately
+            // and update in the background
             startBackgroundUpdate(count: count)
             return cachedUsers
         }
         
-        // Si no hay suficientes en memoria, verificamos SwiftData
+        // If not enough in memory, check SwiftData
         let savedUsers = try await getSavedUsers()
         
         if !savedUsers.isEmpty && savedUsers.count >= count / Constants.userCountThresholdRatio {
-            // Si tenemos suficientes en SwiftData, los devolvemos y actualizamos en memoria
+            // If we have enough in SwiftData, return it and update memory cache
             self.cachedUsers = savedUsers
-            // Actualizamos en segundo plano
+            // Update in the background
             startBackgroundUpdate(count: count)
             return savedUsers
         }
         
-        // Si no hay suficientes datos en caché, cargamos de la API
+        // If not enough data in cache, load from API
         isFirstLoad = false
         let newUsers = try await fetchAndStoreMoreUsers(count: count)
         return newUsers
     }
     
-    // Método para paginación - siempre carga desde la API
+    // Method for pagination - always loads from API
     func loadMoreUsers(count: Int) async throws -> [User] {
-        // Siempre cargamos desde la API para paginación
+        // Always load from API for pagination
         let newUsers = try await fetchAndStoreMoreUsers(count: count)
         return newUsers
     }
     
-    // Método para verificar si debemos cargar más contenido (para UI)
+    // Method to check if we should load more content (for UI)
     func shouldLoadMore(currentIndex: Int, totalCount: Int) -> Bool {
         let threshold = totalCount - Constants.loadThreshold
         return currentIndex >= threshold
     }
     
-    // Inicia una actualización en segundo plano sin bloquear
+    // Starts a background update without blocking
     private func startBackgroundUpdate(count: Int) {
-        // Cancelar tarea anterior si existe
+        // Cancel previous task if exists
         backgroundUpdateTask?.cancel()
         
         backgroundUpdateTask = Task { [weak self] in
             guard let self = self else { return }
             do {
-                // No esperamos el resultado ya que es background
+                // We don't wait for the result since it's a background task
                 _ = try await fetchAndStoreMoreUsers(count: count)
             } catch {
-                // Solo registramos el error sin propagarlo al usuario
-                print("Error en actualización en segundo plano: \(error)")
+                // Just log the error without propagating to the user
+                print("Error in background update: \(error)")
             }
         }
     }
@@ -87,16 +87,16 @@ class DefaultUserRepository: UserRepository {
             // Load with reduced timeout for the first load for better reactivity
             let response = try await apiClient.getUsersWithRetry(count: count)
             
-            // Obtener el orden máximo actual de los usuarios
+            // Get the current maximum order of users
             let savedUsers = try? await getSavedUsers()
             let maxOrder = savedUsers?.map { $0.order }.max() ?? -1
             
-            // Asignar orden secuencial a los nuevos usuarios preservando su orden
+            // Assign sequential order to new users preserving their order
             var newUsers = [User]()
             for (index, userDTO) in response.results.enumerated() {
-                // Convertir a dominio pero manteniendo el orden
+                // Convert to domain but maintaining the order
                 var user = userDTO.toDomain()
-                // Recreamos el usuario para asignarle un orden
+                // Recreate the user to assign an order
                 user = User(
                     id: user.id,
                     name: user.name,
@@ -108,21 +108,21 @@ class DefaultUserRepository: UserRepository {
                     location: user.location,
                     registeredDate: user.registeredDate,
                     picture: user.picture,
-                    order: maxOrder + 1 + index // Asignamos orden consecutivo
+                    order: maxOrder + 1 + index // Assign consecutive order
                 )
                 newUsers.append(user)
             }
             
-            // Actualizar la caché en memoria
+            // Update memory cache
             if !newUsers.isEmpty {
-                // Añadir solo usuarios únicos a la caché
+                // Add only unique users to the cache
                 let existingIDs = Set(self.cachedUsers.map { $0.id })
                 let uniqueNewUsers = newUsers.filter { !existingIDs.contains($0.id) }
                 
                 if !uniqueNewUsers.isEmpty {
                     self.cachedUsers.append(contentsOf: uniqueNewUsers)
                     
-                    // Guardar en SwiftData en segundo plano
+                    // Save to SwiftData in the background
                     Task {
                         do {
                             try await saveUsers(uniqueNewUsers)
@@ -159,12 +159,12 @@ class DefaultUserRepository: UserRepository {
     
     func deleteUser(withID id: String) async throws {
         try await userStorage.deleteUser(withID: id)
-        // También eliminar de la caché en memoria
+        // Also remove from memory cache
         cachedUsers.removeAll { $0.id == id }
     }
     
     func searchUsers(query: String) async throws -> [User] {
-        // Primero intentamos buscar en la caché en memoria
+        // First try to search in memory cache
         if !cachedUsers.isEmpty {
             let lowercasedQuery = query.lowercased()
             let results = cachedUsers.filter { user in
@@ -177,7 +177,7 @@ class DefaultUserRepository: UserRepository {
             }
         }
         
-        // Si no hay resultados en memoria, buscamos en SwiftData
+        // If no results in memory, search in SwiftData
         let users = try await getSavedUsers()
         
         let lowercasedQuery = query.lowercased()

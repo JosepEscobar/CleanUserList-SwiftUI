@@ -34,7 +34,7 @@ struct UserDTO: Decodable {
                 medium: picture.medium,
                 thumbnail: picture.thumbnail
             ),
-            order: 0 // Por defecto, el orden se asignará más tarde
+            order: 0 // By default, order will be assigned later
         )
     }
 }

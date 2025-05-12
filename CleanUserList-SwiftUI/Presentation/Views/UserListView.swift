@@ -129,16 +129,18 @@ struct UserListView: View {
                     .frame(maxWidth: .infinity)
                     .listRowSeparator(.hidden)
                     .padding()
-            } else if searchText.isEmpty {
-                // Solo mostrar elemento de carga en modo lista normal (no búsqueda)
-                LoadMoreButton {
-                    if !viewModel.isLoadingMoreUsers {
-                        Task {
-                            await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+            } else if searchText.isEmpty && !viewModel.allUsersLoaded {
+                // Invisible element to trigger loading on infinite scroll
+                Color.clear
+                    .frame(height: 20)
+                    .listRowSeparator(.hidden)
+                    .onAppear {
+                        if !viewModel.isLoadingMoreUsers {
+                            Task {
+                                await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
+                            }
                         }
                     }
-                }
-                .listRowSeparator(.hidden)
             }
         }
         .listStyle(.plain)
@@ -149,24 +151,5 @@ struct UserListView: View {
             await viewModel.loadMoreUsers(count: Constants.defaultLoadCount)
             isRefreshing = false
         }
-    }
-}
-
-// Componente simple para cargar más datos al final de la lista
-struct LoadMoreButton: View {
-    var action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Spacer()
-                Text("Cargar más")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.blue)
-                Spacer()
-            }
-            .padding()
-        }
-        .buttonStyle(.plain)
     }
 } 

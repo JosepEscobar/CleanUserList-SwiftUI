@@ -12,7 +12,7 @@ class DefaultLoadMoreUsersUseCase: LoadMoreUsersUseCase {
     }
     
     func execute(count: Int) async throws -> [User] {
-        // Para paginación siempre usamos el método específico del repositorio
+        // For pagination we always use the specific repository method
         return try await repository.loadMoreUsers(count: count)
     }
 } 

@@ -107,15 +107,15 @@ final class UserListViewModel: UserListViewModelType {
     
     // MARK: - Public Methods
     
-    // Carga inicial de usuarios
+    // Initial user loading
     @MainActor
     func loadInitialUsers() async {
         isLoading = true
         errorMessage = nil
         
         do {
-            // El caso de uso GetUsersUseCase ya implementa la lógica
-            // de buscar primero en caché y luego en API si es necesario
+            // The GetUsersUseCase already implements the logic
+            // to first check cache and then API if necessary
             let initialUsers = try await getUsersUseCase.execute(count: Constants.defaultUserCount)
             
             self.users = initialUsers
@@ -128,9 +128,9 @@ final class UserListViewModel: UserListViewModelType {
         isLoading = false
     }
     
-    // Carga adicional para paginación
+    // Additional loading for pagination
     func loadMoreUsers(count: Int = Constants.defaultLoadCount) async {
-        // No cargar más si estamos buscando
+        // Don't load more if we're searching
         if !searchText.isEmpty {
             return
         }
@@ -150,10 +150,10 @@ final class UserListViewModel: UserListViewModelType {
         lastRequestedCount = count
         
         do {
-            // Usamos el caso de uso específico para paginación
+            // Use the specific use case for pagination
             let newUsers = try await loadMoreUsersUseCase.execute(count: count)
             
-            // Integramos los nuevos usuarios, evitando duplicados
+            // Integrate new users, avoiding duplicates
             let existingIDs = Set(self.users.map { $0.id })
             let uniqueNewUsers = newUsers.filter { !existingIDs.contains($0.id) }
             
@@ -194,7 +194,7 @@ final class UserListViewModel: UserListViewModelType {
                     isLoading = true
                 }
                 
-                // Usamos el caso de uso para búsqueda
+                // Use the search use case
                 let results = try await searchUsersUseCase.execute(query: query)
                 
                 if !Task.isCancelled {
