@@ -1,0 +1,25 @@
+# Exclusiones para el análisis de cobertura de código
+# Formato: nombres de archivos o patrones para excluir del cálculo de cobertura
+
+# Dependencias externas
+Pods/*
+Carthage/*
+*.generated.swift
+vendor/*
+
+# SPM packages específicos
+**/Kingfisher/**/*
+**/Nimble/**/*
+
+# Otras bibliotecas populares que podrías utilizar
+**/Alamofire/**/*
+**/RxSwift/**/*
+**/SnapKit/**/*
+**/SwiftUI-Flow-Layout/**/*
+
+# Archivos generados automáticamente
+*.generated.swift
+*Mocks.swift
+
+# Archivos para ignorar específicos del proyecto
+**/*URLProtocol.swift

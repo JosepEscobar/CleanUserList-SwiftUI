@@ -1,0 +1,10 @@
+# Archivos de configuración de Xcode
+*.xcconfig linguist-language=Xcode
+.xccovignore linguist-language=INI
+
+# Archivos Swift
+*.swift linguist-language=Swift
+
+# Ignorar bibliotecas externas en estadísticas
+**/Kingfisher/**/* linguist-vendored
+**/Nimble/**/* linguist-vendored 

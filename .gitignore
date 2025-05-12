@@ -1,0 +1,69 @@
+# Xcode
+#
+# gitignore para proyectos Swift y Xcode
+#
+## Configuración de usuario
+xcuserdata/
+
+## Configuración específica de la app
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+## Archivos específicos a ignorar
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+#
+# Agregar esta línea si estás usando Swift Package Manager
+Packages/
+Package.pins
+Package.resolved
+.build/
+
+# CocoaPods
+#
+# Descomentar si estás usando CocoaPods
+# Pods/
+
+# Carthage
+#
+# Descomentar si estás usando Carthage
+# Carthage/Checkouts
+# Carthage/Build
+
+# fastlane
+#
+# Descomentar si estás usando fastlane
+# fastlane/report.xml
+# fastlane/Preview.html
+# fastlane/screenshots
+# fastlane/test_output
+
+# Directorios generados por el sistema
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos temporales
+*~
+*.swp
+*.swo
+
+# Archivos de DerivedData y build
+DerivedData/
+build/
+
+# IDE
+.idea/
+*.xcodeproj/**/xcuserdata/
+*.xcworkspace/**/xcuserdata/
+*.xcworkspace/xcshareddata/*.xccheckout
+*.xcworkspace/xcshareddata/*.xcscmblueprint 

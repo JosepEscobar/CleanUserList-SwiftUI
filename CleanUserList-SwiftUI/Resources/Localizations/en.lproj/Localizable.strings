@@ -1,0 +1,29 @@
+// MARK: - UserListView
+"users_title" = "Users";
+"search_users" = "Search users";
+"loading_users" = "Loading users...";
+"no_users_available" = "No users available";
+"try_loading_users" = "Try loading users from the API";
+"no_results_found" = "No results found";
+"try_another_search" = "Try another search";
+"load_users" = "Load users";
+"clear_search" = "Clear search";
+"connection_problem" = "There seems to be a problem with the Internet connection. Check your connection and try again.";
+"retry" = "Retry";
+"continue_with_saved_users" = "Continue with saved users (%d)";
+"delete" = "Delete";
+
+// MARK: - UserDetailView
+"user_details" = "User Details";
+"name" = "Name";
+"email" = "Email";
+"phone" = "Phone";
+"gender" = "Gender";
+"address" = "Address";
+"registration_date" = "Registration Date";
+
+// MARK: - Language Selector
+"select_language" = "Select language";
+
+// MARK: - Image Loading
+"error_loading_image" = "Error loading image"; 
